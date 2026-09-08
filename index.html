@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Fleet Settlement Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
 <link rel="stylesheet" href="css/styles.css" />
 <script src="vendor/chart.umd.js"></script>
 <script src="vendor/pdf.min.js"></script>
@@ -20,7 +23,8 @@
       Diesel $/gal (for est. MPG)
       <input type="number" id="diesel-price" step="0.01" value="3.85" />
     </div>
-    <button class="ghost" id="btn-export">Export backup</button>
+    <button class="ghost" id="btn-export">Export backup (JSON)</button>
+    <button class="ghost" id="btn-export-csv">Export CSV</button>
     <button class="ghost" id="btn-import">Import backup</button>
     <input type="file" id="import-file-input" accept="application/json" class="hidden" />
     <button class="ghost" id="btn-reset">Reset to sample data</button>
@@ -48,7 +52,7 @@
   <div class="tab-panel active" id="panel-overview">
     <div class="section chart-grid">
       <div>
-        <h2>RPM / Net RPM / CPM trend</h2>
+        <h2>True RPM / Revenue RPM / All-in CPM trend</h2>
         <div class="chart-box"><canvas id="chart-rpm"></canvas></div>
       </div>
       <div>
@@ -76,14 +80,14 @@
 
   <div class="tab-panel" id="panel-trucks">
     <div class="section">
-      <h2>Truck Leaderboard (ranked by net $/mile)</h2>
+      <h2>Truck Leaderboard (ranked by true profit/mile)</h2>
       <div class="table-scroll">
         <table id="table-trucks">
-          <thead><tr><th>Truck</th><th>Weeks</th><th>Total Miles</th><th>Gross Revenue</th><th>Net Pay</th><th>RPM</th><th>CPM</th><th>Net RPM</th><th>Deadhead %</th><th>Maint $/mi</th><th>Fuel $/mi</th><th>MPG</th></tr></thead>
+          <thead><tr><th>Truck</th><th>Weeks</th><th>Total Miles</th><th>Gross Revenue</th><th>Carrier Net</th><th>True Profit</th><th>RPM</th><th>CPM</th><th>All-in CPM</th><th>True RPM</th><th>Deadhead %</th><th>Maint $/mi</th><th>Fuel $/mi</th><th>MPG</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted" style="margin-top:10px;font-size:13px">Only one truck is in the sample data, so this leaderboard becomes meaningful once you add statements for additional trucks — RPM = revenue/mile, CPM = cost/mile (all deductions), Net RPM = RPM − CPM = owner profit/mile.</p>
+      <p class="muted" style="margin-top:10px;font-size:13px">Ranked by <strong>True RPM</strong> (profit per mile after fuel) — that's the number that actually says which truck is outperforming. RPM = revenue/mile, CPM = cost/mile excl. fuel, All-in CPM = cost/mile incl. fuel. Only one truck is in the sample data; this becomes a real comparison once you add more.</p>
     </div>
   </div>
 
@@ -114,7 +118,7 @@
       <p class="muted" style="font-size:13px;margin-top:-6px">Click <strong>Edit</strong> on any row to correct or fill in numbers — fuel included. Nothing here is locked to what a PDF happened to contain.</p>
       <div class="table-scroll">
         <table id="table-weeks">
-          <thead><tr><th class="sticky-col">Actions</th><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>RPM</th><th>CPM</th><th>Net Pay</th><th>Net RPM</th><th>Margin %</th><th>Maintenance</th><th>Fuel Cost</th><th>MPG</th></tr></thead>
+          <thead><tr><th class="sticky-col">Actions</th><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>RPM</th><th>CPM</th><th>Carrier Net</th><th>True Profit</th><th>True RPM</th><th>Margin %</th><th>Maintenance</th><th>Fuel Cost</th><th>MPG</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

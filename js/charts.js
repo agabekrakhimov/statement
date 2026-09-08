@@ -1,7 +1,7 @@
 // Chart.js rendering helpers. One canvas per chart; instances are cached
 // and destroyed/recreated on refresh so re-renders don't leak.
 
-const PALETTE = ["#2563eb", "#d97706", "#0d9488", "#e11d48", "#7c3aed", "#65a30d", "#0891b2"];
+const PALETTE = ["#b5670f", "#2f6fa8", "#0d7d6f", "#d6304a", "#7c5cbf", "#6b8e23", "#0891b2"];
 const charts = {};
 
 function isDark() {
@@ -47,18 +47,18 @@ function renderRpmTrend(canvasId, weeksByTruck) {
   for (const [truck, weeks] of weeksByTruck) {
     const color = PALETTE[i % PALETTE.length];
     datasets.push({
-      label: `${truck} — Net RPM`,
-      data: weeks.map((w) => ({ x: labelWeek(w), y: +w.netRpm.toFixed(3) })),
-      borderColor: color, backgroundColor: color, tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
+      label: `${truck} — True RPM (after fuel)`,
+      data: weeks.map((w) => ({ x: labelWeek(w), y: +w.trueNetRpm.toFixed(3) })),
+      borderColor: color, backgroundColor: color, borderWidth: 3, tension: 0.3, pointRadius: 4, pointHoverRadius: 6,
     });
     datasets.push({
       label: `${truck} — Revenue RPM`,
       data: weeks.map((w) => ({ x: labelWeek(w), y: +w.rpm.toFixed(3) })),
-      borderColor: color, backgroundColor: color, borderDash: [6, 4], tension: 0.3, pointRadius: 3, pointHoverRadius: 5,
+      borderColor: color, backgroundColor: color, borderDash: [6, 4], borderWidth: 1.5, tension: 0.3, pointRadius: 3, pointHoverRadius: 5,
     });
     datasets.push({
-      label: `${truck} — CPM (cost/mi)`,
-      data: weeks.map((w) => ({ x: labelWeek(w), y: +w.cpm.toFixed(3) })),
+      label: `${truck} — All-in CPM (incl. fuel)`,
+      data: weeks.map((w) => ({ x: labelWeek(w), y: +w.allInCpm.toFixed(3) })),
       borderColor: color, backgroundColor: color, borderDash: [2, 3], borderWidth: 1.5, tension: 0.3, pointRadius: 2, pointHoverRadius: 4,
     });
     i++;

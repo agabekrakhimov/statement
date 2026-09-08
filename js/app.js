@@ -49,8 +49,8 @@
       .join("");
   }
 
-  function kpiCard(label, value, delta) {
-    return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div>${delta ? `<div class="delta ${delta.dir}">${delta.text}</div>` : ""}</div>`;
+  function kpiCard(label, value, delta, opts = {}) {
+    return `<div class="kpi${opts.hero ? " hero" : ""}"><div class="label">${label}</div><div class="value">${value}</div>${opts.sub ? `<div class="sub">${opts.sub}</div>` : ""}${delta ? `<div class="delta ${delta.dir}">${delta.text}</div>` : ""}</div>`;
   }
 
   function renderKpis(weeks, rollups) {
@@ -59,28 +59,28 @@
     const totalMiles = weeks.reduce((a, w) => a + w.totalMiles, 0);
     const totalGross = weeks.reduce((a, w) => a + w.grossRevenue, 0);
     const totalNet = weeks.reduce((a, w) => a + w.ownerNetPay, 0);
+    const totalTrueNet = weeks.reduce((a, w) => a + w.trueNetPay, 0);
     const totalDed = weeks.reduce((a, w) => a + w.totalDeductions, 0);
     const totalMaint = weeks.reduce((a, w) => a + w.maintenance, 0);
     const fuelWeeks = weeks.filter((w) => w.hasFuelData);
     const totalFuelCost = fuelWeeks.reduce((a, w) => a + (w.fuelCost || 0), 0);
     const totalGallons = fuelWeeks.reduce((a, w) => a + (w.fuelGallons || 0), 0);
     const avgRpm = totalMiles ? totalGross / totalMiles : 0;
-    const avgNetRpm = totalMiles ? totalNet / totalMiles : 0;
     const avgCpm = totalMiles ? totalDed / totalMiles : 0;
+    const avgTrueNetRpm = totalMiles ? totalTrueNet / totalMiles : 0;
     const avgMpg = totalGallons > 0 ? totalMiles / totalGallons : null;
     const last = weeks[weeks.length - 1];
     const prev = weeks[weeks.length - 2];
-    const trend = prev ? (last.netRpm >= prev.netRpm ? { dir: "up", text: `▲ vs prior week ($${prev.netRpm.toFixed(2)})` } : { dir: "down", text: `▼ vs prior week ($${prev.netRpm.toFixed(2)})` }) : null;
+    const trend = prev ? (last.trueNetRpm >= prev.trueNetRpm ? { dir: "up", text: `▲ vs prior week ($${prev.trueNetRpm.toFixed(2)}/mi)` } : { dir: "down", text: `▼ vs prior week ($${prev.trueNetRpm.toFixed(2)}/mi)` }) : null;
 
     el.innerHTML = [
+      kpiCard("True Profit (after fuel)", fmtMoney(totalTrueNet), trend, { hero: true, sub: `$${avgTrueNetRpm.toFixed(2)}/mi · carrier reported ${fmtMoney(totalNet)} before fuel` }),
       kpiCard("Weeks tracked", weeks.length),
       kpiCard("Trucks", rollups.length),
       kpiCard("Total miles", fmtNum(totalMiles)),
       kpiCard("Gross revenue", fmtMoney(totalGross)),
-      kpiCard("Owner net pay", fmtMoney(totalNet)),
       kpiCard("Avg RPM (revenue/mi)", `$${avgRpm.toFixed(2)}`),
-      kpiCard("Avg net $/mi", `$${avgNetRpm.toFixed(2)}`, trend),
-      kpiCard("Avg CPM (cost/mi)", `$${avgCpm.toFixed(2)}`),
+      kpiCard("Avg CPM (cost/mi, excl. fuel)", `$${avgCpm.toFixed(2)}`),
       kpiCard("Maintenance total", fmtMoney(totalMaint)),
       kpiCard("Fuel cost tracked", fuelWeeks.length ? fmtMoney(totalFuelCost) : "No data"),
       kpiCard("Fleet MPG", avgMpg ? `${avgMpg.toFixed(1)}${fuelWeeks.some((w) => w.mpgIsEstimate) ? " (est.)" : ""}` : "No data"),
@@ -112,9 +112,11 @@
         <td>${fmtNum(r.totalMiles)}</td>
         <td>${fmtMoney(r.grossRevenue)}</td>
         <td>${fmtMoney(r.netPay)}</td>
+        <td><strong>${fmtMoney(r.trueNetPay)}</strong></td>
         <td>${fmtPerMile(r.avgRpm)}</td>
         <td>${fmtPerMile(r.avgCpm)}</td>
-        <td>${fmtPerMile(r.avgNetRpm)}</td>
+        <td>${fmtPerMile(r.avgAllInCpm)}</td>
+        <td><strong>${fmtPerMile(r.avgTrueNetRpm)}</strong></td>
         <td>${r.avgDeadheadPct.toFixed(1)}%</td>
         <td>${fmtPerMile(r.maintenancePerMile)}</td>
         <td>${r.hasAnyFuelData ? fmtPerMile(r.fuelPerMile) : "—"}</td>
@@ -149,6 +151,7 @@
       .map((w) => `<tr>
         <td class="sticky-col row-actions">
           <button class="ghost small" data-action="edit" data-id="${w.recordId}">Edit</button>
+          <button class="ghost small" data-action="duplicate" data-id="${w.recordId}" title="Start next week's entry from this one">Duplicate</button>
           <button class="ghost small danger" data-action="delete" data-id="${w.recordId}">Delete</button>
         </td>
         <td>${fmtDate(w.periodStart)} – ${fmtDate(w.periodEnd)}</td>
@@ -161,7 +164,8 @@
         <td>${fmtPerMile(w.rpm)}</td>
         <td>${fmtPerMile(w.cpm)}</td>
         <td>${fmtMoney(w.ownerNetPay)}</td>
-        <td>${fmtPerMile(w.netRpm)}</td>
+        <td><strong>${fmtMoney(w.trueNetPay)}</strong></td>
+        <td><strong>${fmtPerMile(w.trueNetRpm)}</strong></td>
         <td>${w.marginPct.toFixed(1)}%</td>
         <td>${fmtMoney(w.maintenance)}</td>
         <td>${w.hasFuelData ? fmtMoney(w.fuelCost) : '<span class="tag" style="color:var(--bad);border-color:var(--bad)">missing</span>'}</td>
@@ -171,6 +175,9 @@
 
     tbody.querySelectorAll("button[data-action='edit']").forEach((btn) => {
       btn.addEventListener("click", () => openEditModal(byRecordId.get(btn.dataset.id)));
+    });
+    tbody.querySelectorAll("button[data-action='duplicate']").forEach((btn) => {
+      btn.addEventListener("click", () => openDuplicateModal(byRecordId.get(btn.dataset.id)));
     });
     tbody.querySelectorAll("button[data-action='delete']").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -182,6 +189,34 @@
         }
       });
     });
+  }
+
+  function addDays(dateStr, days) {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function openDuplicateModal(statement) {
+    // Carries forward truck/driver and the recurring fixed deductions
+    // (company fee %, insurance, trailer, ELD, IFTA) since those repeat
+    // most weeks — but blanks out everything that's specific to this
+    // week's trip (miles, revenue, net pay, fuel, maintenance) so it's
+    // never mistaken for the same week's numbers.
+    const next = Object.assign({}, statement, {
+      recordId: undefined,
+      id: "",
+      periodStart: statement.periodEnd ? addDays(statement.periodEnd, 1) : "",
+      periodEnd: statement.periodEnd ? addDays(statement.periodEnd, 7) : "",
+      trips: 1,
+      loadedMiles: null, emptyMiles: null, totalMiles: null,
+      grossRevenue: null, ownerNetPay: null,
+      fuelCost: null, fuelGallons: null,
+      deductionCategories: Object.assign({}, statement.deductionCategories, { maintenance: 0, other: 0 }),
+      driverSettlement: { earnings: null, advances: 0, otherPay: 0, netPay: null, fines: [] },
+      sourceFile: "duplicated from " + statement.id,
+    });
+    openEditModal(next, { isNew: true, sourceLabel: `New week, carried forward from ${statement.id}` });
   }
 
   // ---- Tabs ----
@@ -219,6 +254,12 @@
   document.getElementById("btn-export").addEventListener("click", () => {
     window.Store.exportJSON();
     showToast("Downloaded backup JSON.");
+  });
+  document.getElementById("btn-export-csv").addEventListener("click", () => {
+    const { statements } = window.Metrics.dedupeStatements(window.Store.loadStatements());
+    const weeks = statements.map((s) => window.Metrics.computeWeekMetrics(s)).sort((a, b) => new Date(a.periodStart) - new Date(b.periodStart));
+    window.Store.exportCSV(weeks);
+    showToast("Downloaded CSV.");
   });
   document.getElementById("btn-import").addEventListener("click", () => document.getElementById("import-file-input").click());
   document.getElementById("import-file-input").addEventListener("change", async (e) => {
@@ -277,7 +318,7 @@
   function showNextPending() {
     if (pendingIndex >= pendingFiles.length) { refresh(); return; }
     const { statement, warnings, file } = pendingFiles[pendingIndex];
-    openEditModal(statement, { warnings, sourceLabel: file.name, isNew: true, onDone: () => { pendingIndex++; showNextPending(); } });
+    openEditModal(statement, { warnings, sourceLabel: file.name, isNew: true, queued: true, onDone: () => { pendingIndex++; showNextPending(); } });
   }
 
   // ---- Add week manually ----
@@ -345,7 +386,7 @@
     editModal.dataset.isNew = opts.isNew ? "1" : "";
     editModal.dataset.existingFines = JSON.stringify(ds.fines || []);
     editModal._onDone = opts.onDone || null;
-    document.getElementById("btn-skip-edit").classList.toggle("hidden", !opts.isNew);
+    document.getElementById("btn-skip-edit").classList.toggle("hidden", !opts.queued);
     editModal.classList.remove("hidden");
   }
 

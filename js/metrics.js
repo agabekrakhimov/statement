@@ -61,9 +61,29 @@ function computeWeekMetrics(stmt) {
   const fuelCost = hasFuelCost ? stmt.fuelCost : null;
   const fuelPerMile = fuelCost && totalMiles ? fuelCost / totalMiles : null;
 
+  // The carrier's "net pay" almost never has fuel taken out of it yet — fuel
+  // is either on a separate card/balance or paid out of pocket. So the
+  // number that actually decides whether the week made money is net pay
+  // MINUS fuel, not the carrier figure alone. Everything below calls that
+  // "true profit"; the carrier number is kept alongside it for reference.
+  const trueNetPay = ownerNetPay - (fuelCost || 0);
+  const trueNetRpm = totalMiles ? trueNetPay / totalMiles : 0;
+  const allInCpm = totalMiles ? (totalDeductions + (fuelCost || 0)) / totalMiles : 0;
+
   const byCategory = {};
   for (const c of DEDUCTION_CATS) {
     byCategory[c.key] = { label: c.label, total: num(cats[c.key]), perMile: totalMiles ? num(cats[c.key]) / totalMiles : 0 };
+  }
+
+  // Sanity check: gross revenue − driver pay − deductions should land on the
+  // carrier's reported net pay. A mismatch usually means a typo somewhere
+  // (most often the deduction categories not adding up to what the
+  // statement's own total said, or gross entered instead of net).
+  const driverGross = stmt.driverSettlement && stmt.driverSettlement.earnings !== null && stmt.driverSettlement.earnings !== undefined
+    ? stmt.driverSettlement.earnings : null;
+  let reconciliationDelta = null;
+  if (driverGross !== null && grossRevenue) {
+    reconciliationDelta = grossRevenue - driverGross - totalDeductions - ownerNetPay;
   }
 
   return {
@@ -82,10 +102,14 @@ function computeWeekMetrics(stmt) {
     grossRevenue,
     ownerNetPay,
     rpm: totalMiles ? grossRevenue / totalMiles : 0, // revenue per mile
-    netRpm: totalMiles ? ownerNetPay / totalMiles : 0, // owner profit per mile
+    netRpm: totalMiles ? ownerNetPay / totalMiles : 0, // carrier-reported net per mile (before fuel)
+    trueNetPay,
+    trueNetRpm, // net per mile after fuel — the number that decides if the week was profitable
     marginPct: grossRevenue ? (ownerNetPay / grossRevenue) * 100 : 0,
     totalDeductions,
-    cpm: totalMiles ? totalDeductions / totalMiles : 0, // cost per mile (all deductions)
+    cpm: totalMiles ? totalDeductions / totalMiles : 0, // cost per mile, deductions only (excl. fuel)
+    allInCpm, // cost per mile including fuel
+    reconciliationDelta,
     byCategory,
     maintenance: num(cats.maintenance),
     maintenancePerMile: totalMiles ? num(cats.maintenance) / totalMiles : 0,
@@ -117,6 +141,7 @@ function rollupByTruck(weeks) {
     const totalMiles = sum(wks, (w) => w.totalMiles);
     const grossRevenue = sum(wks, (w) => w.grossRevenue);
     const netPay = sum(wks, (w) => w.ownerNetPay);
+    const trueNetPay = sum(wks, (w) => w.trueNetPay);
     const totalDeductions = sum(wks, (w) => w.totalDeductions);
     const maintenance = sum(wks, (w) => w.maintenance);
     const fuelWeeks = wks.filter((w) => w.hasFuelData);
@@ -130,11 +155,14 @@ function rollupByTruck(weeks) {
       totalMiles,
       grossRevenue,
       netPay,
+      trueNetPay,
       totalDeductions,
       maintenance,
       avgRpm: totalMiles ? grossRevenue / totalMiles : 0,
       avgNetRpm: totalMiles ? netPay / totalMiles : 0,
+      avgTrueNetRpm: totalMiles ? trueNetPay / totalMiles : 0,
       avgCpm: totalMiles ? totalDeductions / totalMiles : 0,
+      avgAllInCpm: totalMiles ? (totalDeductions + fuelCost) / totalMiles : 0,
       avgDeadheadPct: wks.length ? sum(wks, (w) => w.deadheadPct) / wks.length : 0,
       avgMarginPct: wks.length ? sum(wks, (w) => w.marginPct) / wks.length : 0,
       maintenancePerMile: totalMiles ? maintenance / totalMiles : 0,
@@ -144,7 +172,11 @@ function rollupByTruck(weeks) {
       hasAnyFuelData: fuelWeeks.length > 0,
     });
   }
-  rollups.sort((a, b) => b.avgNetRpm - a.avgNetRpm);
+  // Rank by true profit per mile (after fuel) — that's the number that
+  // actually answers "which truck is outperforming," not the carrier's
+  // pre-fuel net pay, which looks the same for a thirsty truck and a
+  // fuel-efficient one until fuel is factored in.
+  rollups.sort((a, b) => b.avgTrueNetRpm - a.avgTrueNetRpm);
   return rollups;
 }
 
@@ -204,6 +236,33 @@ function generateInsights(weeks, conflicts) {
     }
   }
 
+  // Numbers that don't add up — usually a typo in one of the deduction
+  // fields, or gross entered where net was meant (only checked when driver
+  // earnings is filled in, since that's required to do the arithmetic).
+  for (const w of sorted) {
+    if (w.reconciliationDelta !== null && Math.abs(w.reconciliationDelta) > 1) {
+      insights.push({
+        severity: "critical",
+        title: `Numbers don't add up — Truck ${w.truckLabel}, week of ${w.periodStart}`,
+        detail: `Gross − driver pay − deductions should equal net pay, but it's off by $${Math.abs(w.reconciliationDelta).toFixed(2)}. Double-check the deduction amounts and driver earnings on this week's Edit form.`,
+      });
+    }
+  }
+
+  // The single most-requested number: what a truck actually made once fuel
+  // (which the carrier never deducts) comes out too.
+  const fuelTrackedWeeks = sorted.filter((w) => w.hasFuelData && w.fuelCost > 0);
+  if (fuelTrackedWeeks.length) {
+    const totalCarrierNet = sum(fuelTrackedWeeks, (w) => w.ownerNetPay);
+    const totalTrueNet = sum(fuelTrackedWeeks, (w) => w.trueNetPay);
+    const totalFuel = sum(fuelTrackedWeeks, (w) => w.fuelCost);
+    insights.push({
+      severity: "info",
+      title: "Fuel isn't in the carrier's net pay",
+      detail: `Across the ${fuelTrackedWeeks.length} week(s) with fuel entered, the carrier reported $${totalCarrierNet.toFixed(2)} net, but true profit after $${totalFuel.toFixed(2)} in fuel was $${totalTrueNet.toFixed(2)}. The dashboard now ranks and reports on true profit, not the carrier figure, wherever the two could be confused.`,
+    });
+  }
+
   // Missing fuel data — actionable, since it's now directly editable
   const missingFuelWeeks = sorted.filter((w) => !w.hasFuelData);
   if (missingFuelWeeks.length) {
@@ -244,11 +303,11 @@ function generateInsights(weeks, conflicts) {
   }
   for (const [, wks] of byTruck) {
     for (let i = 2; i < wks.length; i++) {
-      if (wks[i].netRpm < wks[i - 1].netRpm && wks[i - 1].netRpm < wks[i - 2].netRpm) {
+      if (wks[i].trueNetRpm < wks[i - 1].trueNetRpm && wks[i - 1].trueNetRpm < wks[i - 2].trueNetRpm) {
         insights.push({
           severity: "warning",
           title: `3-week declining trend — Truck ${wks[i].truckLabel}`,
-          detail: `Net RPM has fallen for 3 straight weeks ($${wks[i - 2].netRpm.toFixed(2)} → $${wks[i - 1].netRpm.toFixed(2)} → $${wks[i].netRpm.toFixed(2)}). Worth checking lanes, deadhead, and recent deductions together.`,
+          detail: `True profit/mile has fallen for 3 straight weeks ($${wks[i - 2].trueNetRpm.toFixed(2)} → $${wks[i - 1].trueNetRpm.toFixed(2)} → $${wks[i].trueNetRpm.toFixed(2)}). Worth checking lanes, deadhead, fuel, and recent deductions together.`,
         });
       }
     }

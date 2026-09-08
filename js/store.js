@@ -67,6 +67,32 @@ function exportJSON() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function exportCSV(weeks) {
+  const cols = [
+    "periodStart", "periodEnd", "truckLabel", "id", "trips", "totalMiles", "loadedMiles", "emptyMiles",
+    "deadheadPct", "grossRevenue", "rpm", "cpm", "ownerNetPay", "trueNetPay", "trueNetRpm", "marginPct",
+    "maintenance", "fuelCost", "fuelGallons", "mpg", "mpgIsEstimate",
+  ];
+  const header = cols.join(",");
+  const rows = weeks.map((w) => cols.map((c) => {
+    const v = w[c];
+    if (v === null || v === undefined) return "";
+    if (typeof v === "string" && v.includes(",")) return `"${v}"`;
+    if (typeof v === "number") return +v.toFixed(4);
+    return v;
+  }).join(","));
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `fleet-weekly-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function importJSON(jsonText) {
   const parsed = JSON.parse(jsonText);
   if (!Array.isArray(parsed)) throw new Error("Expected a JSON array of statements.");
@@ -80,4 +106,4 @@ function importJSON(jsonText) {
   return loadStatements();
 }
 
-window.Store = { loadStatements, saveStatements, addStatement, updateStatement, deleteStatement, resetToSample, clearAll, exportJSON, importJSON, newRecordId };
+window.Store = { loadStatements, saveStatements, addStatement, updateStatement, deleteStatement, resetToSample, clearAll, exportJSON, exportCSV, importJSON, newRecordId };
