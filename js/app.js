@@ -6,9 +6,21 @@
   };
   const fmtNum = (v, d = 0) => (v === null || v === undefined || isNaN(v) ? "—" : v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }));
   const fmtDate = (s) => (s ? new Date(s + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" }) : "—");
+  const fmtPerMile = (v) => (v === null || v === undefined || isNaN(v) ? "—" : `$${v.toFixed(3)}`);
 
-  let pendingFiles = [];
-  let pendingIndex = 0;
+  function showToast(msg) {
+    let el = document.getElementById("toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "toast";
+      el.className = "toast";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove("show"), 2200);
+  }
 
   function refresh() {
     window.Metrics.setDieselPrice(parseFloat(document.getElementById("diesel-price").value));
@@ -23,22 +35,17 @@
     renderCharts(weeks, rollups);
     renderTruckTable(rollups);
     renderDriverTables(statements, weeks);
-    renderWeekTable(weeks);
+    renderWeekTable(raw, weeks);
   }
 
   function renderInsights(insights) {
     const el = document.getElementById("insights-list");
     if (!insights.length) {
-      el.innerHTML = `<p class="muted">No statements yet — upload one to get started, or use the sample data.</p>`;
+      el.innerHTML = `<p class="muted">No statements yet — upload one, add a week manually, or use the sample data.</p>`;
       return;
     }
     el.innerHTML = insights
-      .map(
-        (i) => `<div class="insight ${i.severity}">
-          <span class="badge">${i.severity}</span>
-          <div class="body"><strong>${i.title}</strong>${i.detail}</div>
-        </div>`
-      )
+      .map((i) => `<div class="insight ${i.severity}"><span class="badge">${i.severity}</span><div class="body"><strong>${i.title}</strong>${i.detail}</div></div>`)
       .join("");
   }
 
@@ -48,16 +55,19 @@
 
   function renderKpis(weeks, rollups) {
     const el = document.getElementById("kpi-row");
-    if (!weeks.length) {
-      el.innerHTML = "";
-      return;
-    }
+    if (!weeks.length) { el.innerHTML = ""; return; }
     const totalMiles = weeks.reduce((a, w) => a + w.totalMiles, 0);
     const totalGross = weeks.reduce((a, w) => a + w.grossRevenue, 0);
     const totalNet = weeks.reduce((a, w) => a + w.ownerNetPay, 0);
+    const totalDed = weeks.reduce((a, w) => a + w.totalDeductions, 0);
     const totalMaint = weeks.reduce((a, w) => a + w.maintenance, 0);
+    const fuelWeeks = weeks.filter((w) => w.hasFuelData);
+    const totalFuelCost = fuelWeeks.reduce((a, w) => a + (w.fuelCost || 0), 0);
+    const totalGallons = fuelWeeks.reduce((a, w) => a + (w.fuelGallons || 0), 0);
     const avgRpm = totalMiles ? totalGross / totalMiles : 0;
     const avgNetRpm = totalMiles ? totalNet / totalMiles : 0;
+    const avgCpm = totalMiles ? totalDed / totalMiles : 0;
+    const avgMpg = totalGallons > 0 ? totalMiles / totalGallons : null;
     const last = weeks[weeks.length - 1];
     const prev = weeks[weeks.length - 2];
     const trend = prev ? (last.netRpm >= prev.netRpm ? { dir: "up", text: `▲ vs prior week ($${prev.netRpm.toFixed(2)})` } : { dir: "down", text: `▼ vs prior week ($${prev.netRpm.toFixed(2)})` }) : null;
@@ -68,48 +78,48 @@
       kpiCard("Total miles", fmtNum(totalMiles)),
       kpiCard("Gross revenue", fmtMoney(totalGross)),
       kpiCard("Owner net pay", fmtMoney(totalNet)),
-      kpiCard("Avg revenue $/mi", `$${avgRpm.toFixed(2)}`),
+      kpiCard("Avg RPM (revenue/mi)", `$${avgRpm.toFixed(2)}`),
       kpiCard("Avg net $/mi", `$${avgNetRpm.toFixed(2)}`, trend),
+      kpiCard("Avg CPM (cost/mi)", `$${avgCpm.toFixed(2)}`),
       kpiCard("Maintenance total", fmtMoney(totalMaint)),
+      kpiCard("Fuel cost tracked", fuelWeeks.length ? fmtMoney(totalFuelCost) : "No data"),
+      kpiCard("Fleet MPG", avgMpg ? `${avgMpg.toFixed(1)}${fuelWeeks.some((w) => w.mpgIsEstimate) ? " (est.)" : ""}` : "No data"),
     ].join("");
   }
 
   function renderCharts(weeks, rollups) {
-    // Group by truckUnit (the stable identifier), not truckLabel — the same
-    // physical truck can carry different labels across weeks (e.g. renamed
-    // from the driver's name to the owner's name), and must stay one series.
     const byTruck = new Map();
     for (const w of weeks) {
       if (!byTruck.has(w.truckUnit)) byTruck.set(w.truckUnit, []);
       byTruck.get(w.truckUnit).push(w);
     }
-    // Display each series under its most recent label.
     const displayMap = new Map();
-    for (const [unit, wks] of byTruck) {
-      displayMap.set(wks[wks.length - 1].truckLabel, wks);
-    }
+    for (const [, wks] of byTruck) displayMap.set(wks[wks.length - 1].truckLabel, wks);
     window.Charts.renderRpmTrend("chart-rpm", displayMap);
     window.Charts.renderCostBreakdown("chart-cost", weeks);
+    window.Charts.renderCpmVsRpm("chart-cpm-rpm", weeks);
     window.Charts.renderMaintenanceTrend("chart-maint", weeks);
     window.Charts.renderDeadhead("chart-deadhead", weeks);
+    window.Charts.renderFuelTrend("chart-fuel", weeks);
   }
 
   function renderTruckTable(rollups) {
     const tbody = document.querySelector("#table-trucks tbody");
     tbody.innerHTML = rollups
-      .map(
-        (r, i) => `<tr class="${i === 0 ? "rank-1" : i === rollups.length - 1 && rollups.length > 1 ? "rank-last" : ""}">
+      .map((r, i) => `<tr class="${i === 0 ? "rank-1" : i === rollups.length - 1 && rollups.length > 1 ? "rank-last" : ""}">
         <td>${i === 0 ? "🏆 " : ""}${r.truckLabel}</td>
         <td>${r.weekCount}</td>
         <td>${fmtNum(r.totalMiles)}</td>
         <td>${fmtMoney(r.grossRevenue)}</td>
         <td>${fmtMoney(r.netPay)}</td>
-        <td>$${r.avgRpm.toFixed(2)}</td>
-        <td>$${r.avgNetRpm.toFixed(2)}</td>
+        <td>${fmtPerMile(r.avgRpm)}</td>
+        <td>${fmtPerMile(r.avgCpm)}</td>
+        <td>${fmtPerMile(r.avgNetRpm)}</td>
         <td>${r.avgDeadheadPct.toFixed(1)}%</td>
-        <td>$${r.maintenancePerMile.toFixed(3)}</td>
-      </tr>`
-      )
+        <td>${fmtPerMile(r.maintenancePerMile)}</td>
+        <td>${r.hasAnyFuelData ? fmtPerMile(r.fuelPerMile) : "—"}</td>
+        <td>${r.avgMpg ? r.avgMpg.toFixed(1) + (r.mpgIsEstimate ? " (est.)" : "") : "—"}</td>
+      </tr>`)
       .join("");
   }
 
@@ -132,11 +142,15 @@
     fbody.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="4" class="muted">No violations logged.</td></tr>`;
   }
 
-  function renderWeekTable(weeks) {
+  function renderWeekTable(rawStatements, weeks) {
+    const byRecordId = new Map(rawStatements.map((s) => [s.recordId, s]));
     const tbody = document.querySelector("#table-weeks tbody");
     tbody.innerHTML = weeks
-      .map(
-        (w) => `<tr>
+      .map((w) => `<tr>
+        <td class="sticky-col row-actions">
+          <button class="ghost small" data-action="edit" data-id="${w.recordId}">Edit</button>
+          <button class="ghost small danger" data-action="delete" data-id="${w.recordId}">Delete</button>
+        </td>
         <td>${fmtDate(w.periodStart)} – ${fmtDate(w.periodEnd)}</td>
         <td>${w.truckLabel}</td>
         <td>${w.id}${w.conflict ? ' <span class="tag" style="color:var(--bad);border-color:var(--bad)">conflict</span>' : ""}</td>
@@ -144,13 +158,30 @@
         <td>${fmtNum(w.totalMiles)}</td>
         <td>${w.deadheadPct.toFixed(1)}%</td>
         <td>${fmtMoney(w.grossRevenue)}</td>
+        <td>${fmtPerMile(w.rpm)}</td>
+        <td>${fmtPerMile(w.cpm)}</td>
         <td>${fmtMoney(w.ownerNetPay)}</td>
+        <td>${fmtPerMile(w.netRpm)}</td>
         <td>${w.marginPct.toFixed(1)}%</td>
         <td>${fmtMoney(w.maintenance)}</td>
-        <td>${w.estMPG ? w.estMPG.toFixed(1) + " (est.)" : "—"}</td>
-      </tr>`
-      )
+        <td>${w.hasFuelData ? fmtMoney(w.fuelCost) : '<span class="tag" style="color:var(--bad);border-color:var(--bad)">missing</span>'}</td>
+        <td>${w.mpg ? w.mpg.toFixed(1) + (w.mpgIsEstimate ? " (est.)" : "") : "—"}</td>
+      </tr>`)
       .join("");
+
+    tbody.querySelectorAll("button[data-action='edit']").forEach((btn) => {
+      btn.addEventListener("click", () => openEditModal(byRecordId.get(btn.dataset.id)));
+    });
+    tbody.querySelectorAll("button[data-action='delete']").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const s = byRecordId.get(btn.dataset.id);
+        if (confirm(`Delete statement ${s.id} (week of ${fmtDate(s.periodStart)})? This can't be undone.`)) {
+          window.Store.deleteStatement(btn.dataset.id);
+          showToast("Deleted.");
+          refresh();
+        }
+      });
+    });
   }
 
   // ---- Tabs ----
@@ -171,7 +202,7 @@
     refresh();
   });
 
-  // ---- Reset / clear ----
+  // ---- Reset / clear / export / import ----
   document.getElementById("btn-reset").addEventListener("click", () => {
     if (confirm("Replace current data with the 5 sample statements?")) {
       window.Store.resetToSample();
@@ -185,8 +216,26 @@
     }
   });
   document.getElementById("diesel-price").addEventListener("change", refresh);
+  document.getElementById("btn-export").addEventListener("click", () => {
+    window.Store.exportJSON();
+    showToast("Downloaded backup JSON.");
+  });
+  document.getElementById("btn-import").addEventListener("click", () => document.getElementById("import-file-input").click());
+  document.getElementById("import-file-input").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      window.Store.importJSON(text);
+      showToast("Imported.");
+      refresh();
+    } catch (err) {
+      alert("Couldn't import that file: " + err.message);
+    }
+    e.target.value = "";
+  });
 
-  // ---- Upload modal ----
+  // ---- Upload modal (PDF) ----
   const uploadModal = document.getElementById("upload-modal");
   document.getElementById("btn-upload").addEventListener("click", () => uploadModal.classList.remove("hidden"));
   document.getElementById("btn-close-upload").addEventListener("click", () => uploadModal.classList.add("hidden"));
@@ -199,13 +248,13 @@
   dropzone.addEventListener("drop", (e) => handleFiles(Array.from(e.dataTransfer.files)));
   fileInput.addEventListener("change", (e) => handleFiles(Array.from(e.target.files)));
 
+  let pendingFiles = [];
+  let pendingIndex = 0;
+
   async function handleFiles(files) {
     const pdfFiles = files.filter((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
     if (!pdfFiles.length) return;
-    if (!window.pdfjsLib) {
-      alert("PDF engine is still loading — please try again in a moment.");
-      return;
-    }
+    if (!window.pdfjsLib) { alert("PDF engine is still loading — please try again in a moment."); return; }
     pendingFiles = [];
     const progress = document.getElementById("upload-progress");
     for (const file of pdfFiles) {
@@ -222,78 +271,152 @@
     progress.textContent = `Parsed ${pendingFiles.length} file(s). Review each below.`;
     pendingIndex = 0;
     uploadModal.classList.add("hidden");
-    showReview();
+    showNextPending();
   }
 
-  const reviewModal = document.getElementById("review-modal");
-  function showReview() {
-    if (pendingIndex >= pendingFiles.length) {
-      reviewModal.classList.add("hidden");
-      refresh();
-      return;
-    }
+  function showNextPending() {
+    if (pendingIndex >= pendingFiles.length) { refresh(); return; }
     const { statement, warnings, file } = pendingFiles[pendingIndex];
-    document.getElementById("review-warnings").innerHTML = warnings.length
-      ? `<div class="warn-list"><strong>${file.name}</strong> — please check:<ul>${warnings.map((w) => `<li>${w}</li>`).join("")}</ul></div>`
-      : `<div class="warn-list" style="background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)"><strong>${file.name}</strong> parsed cleanly. Please confirm the key fields below.</div>`;
-
-    const s = statement || {};
-    const fields = document.getElementById("review-fields");
-    fields.innerHTML = `
-      ${row("Statement ID", "f-id", s.id)}
-      ${row("Truck unit", "f-truck", s.truckLabel)}
-      ${row("Driver", "f-driver", s.driver)}
-      ${row("Period start", "f-start", s.periodStart, "date")}
-      ${row("Period end", "f-end", s.periodEnd, "date")}
-      ${row("Trips", "f-trips", s.trips, "number")}
-      ${row("Gross revenue ($)", "f-gross", s.totalGross ?? sumLoads(s), "number")}
-      ${row("Owner net pay ($)", "f-net", s.ownerNetPay, "number")}
-      ${row("Maintenance total ($)", "f-maint", sumDeduction(s, "Maintenance"), "number")}
-      ${row("Total miles", "f-miles", sumMiles(s), "number")}
-      ${row("Fuel balance ($, optional)", "f-fuel", s.fuelBalance, "number")}
-    `;
-    reviewModal.classList.remove("hidden");
+    openEditModal(statement, { warnings, sourceLabel: file.name, isNew: true, onDone: () => { pendingIndex++; showNextPending(); } });
   }
 
-  function row(label, id, value, type = "text") {
-    return `<div class="field-row"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${value ?? ""}" /></div>`;
-  }
-  function sumLoads(s) { return (s.loads || []).reduce((a, l) => a + (l.gross || 0), 0) || null; }
-  function sumMiles(s) { return (s.loads || []).reduce((a, l) => a + (l.totalMiles || 0), 0) || null; }
-  function sumDeduction(s, type) { return (s.deductions || []).filter((d) => d.type === type).reduce((a, d) => a + d.amount, 0); }
-
-  document.getElementById("btn-skip-review").addEventListener("click", () => {
-    pendingIndex++;
-    showReview();
+  // ---- Add week manually ----
+  document.getElementById("btn-add-manual").addEventListener("click", () => {
+    openEditModal(null, { isNew: true, sourceLabel: "Manual entry" });
   });
 
-  document.getElementById("btn-confirm-review").addEventListener("click", () => {
-    const { statement, file } = pendingFiles[pendingIndex];
+  // ---- Edit / Add / Review modal (one shared form) ----
+  const editModal = document.getElementById("edit-modal");
+  const CATS = [
+    { key: "companyFee", label: "Company Fee" },
+    { key: "insurance", label: "Insurance" },
+    { key: "trailer", label: "Trailer Rental" },
+    { key: "maintenance", label: "Maintenance" },
+    { key: "eld", label: "ELD" },
+    { key: "ifta", label: "IFTA" },
+    { key: "escrow", label: "Escrow" },
+    { key: "other", label: "Other" },
+  ];
+
+  function n(v) { return v === null || v === undefined ? "" : v; }
+
+  function openEditModal(statement, opts = {}) {
+    const s = statement || {
+      id: "", truckUnit: "", truckLabel: "", driver: "", periodStart: "", periodEnd: "", trips: 1,
+      loadedMiles: null, emptyMiles: null, totalMiles: null, grossRevenue: null, ownerNetPay: null,
+      fuelCost: null, fuelGallons: null, deductionCategories: {},
+      driverSettlement: { earnings: null, advances: 0, otherPay: 0, netPay: null, fines: [] },
+    };
+    const cats = s.deductionCategories || {};
+    const ds = s.driverSettlement || {};
+
+    document.getElementById("edit-modal-title").textContent = opts.isNew ? (statement ? "Review parsed statement" : "Add a week manually") : "Edit statement";
+    const warnEl = document.getElementById("review-warnings");
+    if (opts.warnings && opts.warnings.length) {
+      warnEl.innerHTML = `<div class="warn-list"><strong>${opts.sourceLabel || ""}</strong> — please check:<ul>${opts.warnings.map((w) => `<li>${w}</li>`).join("")}</ul></div>`;
+    } else if (opts.sourceLabel) {
+      warnEl.innerHTML = `<div class="warn-list" style="background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)"><strong>${opts.sourceLabel}</strong>${statement ? " parsed cleanly. Please confirm the fields below." : ""}</div>`;
+    } else {
+      warnEl.innerHTML = "";
+    }
+
+    document.getElementById("ef-id").value = n(s.id);
+    document.getElementById("ef-truck").value = n(s.truckLabel);
+    document.getElementById("ef-driver").value = n(s.driver);
+    document.getElementById("ef-start").value = n(s.periodStart);
+    document.getElementById("ef-end").value = n(s.periodEnd);
+    document.getElementById("ef-trips").value = n(s.trips);
+    document.getElementById("ef-loaded-miles").value = n(s.loadedMiles);
+    document.getElementById("ef-empty-miles").value = n(s.emptyMiles);
+    document.getElementById("ef-total-miles").value = n(s.totalMiles);
+    document.getElementById("ef-gross").value = n(s.grossRevenue);
+    document.getElementById("ef-net").value = n(s.ownerNetPay);
+    document.getElementById("ef-fuel-cost").value = n(s.fuelCost);
+    document.getElementById("ef-fuel-gallons").value = n(s.fuelGallons);
+    for (const c of CATS) {
+      document.getElementById(`ef-cat-${c.key}`).value = n(cats[c.key] || 0);
+    }
+    document.getElementById("ef-driver-earnings").value = n(ds.earnings);
+    document.getElementById("ef-driver-advances").value = n(ds.advances);
+    document.getElementById("ef-driver-other").value = n(ds.otherPay);
+    document.getElementById("ef-driver-net").value = n(ds.netPay);
+
+    editModal.dataset.recordId = statement ? statement.recordId || "" : "";
+    editModal.dataset.isNew = opts.isNew ? "1" : "";
+    editModal.dataset.existingFines = JSON.stringify(ds.fines || []);
+    editModal._onDone = opts.onDone || null;
+    document.getElementById("btn-skip-edit").classList.toggle("hidden", !opts.isNew);
+    editModal.classList.remove("hidden");
+  }
+
+  document.getElementById("btn-close-edit").addEventListener("click", () => {
+    editModal.classList.add("hidden");
+    if (editModal._onDone) editModal._onDone();
+  });
+  document.getElementById("btn-skip-edit").addEventListener("click", () => {
+    editModal.classList.add("hidden");
+    if (editModal._onDone) editModal._onDone();
+  });
+
+  document.getElementById("btn-save-edit").addEventListener("click", () => {
     const val = (id) => document.getElementById(id).value;
-    const truckLabelRaw = val("f-truck") || "Unknown";
+    const numVal = (id) => { const v = val(id); return v === "" ? null : parseFloat(v); };
+
+    const truckLabelRaw = val("ef-truck") || "Unknown";
     const truckUnit = (truckLabelRaw.match(/\d+/) || [truckLabelRaw])[0];
-    const finalStatement = Object.assign({}, statement, {
-      id: val("f-id") || `MANUAL-${Date.now()}`,
+    const loadedMiles = numVal("ef-loaded-miles");
+    const emptyMiles = numVal("ef-empty-miles");
+    let totalMiles = numVal("ef-total-miles");
+    if (totalMiles === null && loadedMiles !== null && emptyMiles !== null) totalMiles = loadedMiles + emptyMiles;
+
+    const deductionCategories = {};
+    for (const c of CATS) deductionCategories[c.key] = numVal(`ef-cat-${c.key}`) || 0;
+
+    let fines = [];
+    try { fines = JSON.parse(editModal.dataset.existingFines || "[]"); } catch (e) { fines = []; }
+
+    const statement = {
+      id: val("ef-id") || `MANUAL-${Date.now()}`,
       truckUnit,
       truckLabel: truckLabelRaw,
-      driver: val("f-driver") || "Unknown driver",
-      periodStart: val("f-start"),
-      periodEnd: val("f-end"),
-      trips: parseInt(val("f-trips"), 10) || (statement.loads || []).length || 1,
-      ownerNetPay: parseFloat(val("f-net")) || 0,
-      fuelBalance: val("f-fuel") ? parseFloat(val("f-fuel")) : null,
-      loads: (statement.loads && statement.loads.length) ? statement.loads : [
-        { loadNumber: "MANUAL", pu: "—", del: "—", totalMiles: parseFloat(val("f-miles")) || 0, loadedMiles: parseFloat(val("f-miles")) || 0, emptyMiles: 0, gross: parseFloat(val("f-gross")) || 0, driverPayment: 0 },
-      ],
-      deductions: (statement.deductions && statement.deductions.length) ? statement.deductions : [
-        { type: "Maintenance", amount: parseFloat(val("f-maint")) || 0 },
-      ],
-      driverSettlement: statement.driverSettlement || { earnings: 0, advances: 0, reimbursements: 0, deductions: 0, otherPay: 0, netPay: 0, fines: [] },
-      sourceFile: file.name,
-    });
-    window.Store.addStatement(finalStatement);
-    pendingIndex++;
-    showReview();
+      driver: val("ef-driver") || "Unknown driver",
+      periodStart: val("ef-start"),
+      periodEnd: val("ef-end"),
+      trips: parseInt(val("ef-trips"), 10) || 1,
+      loadedMiles, emptyMiles, totalMiles,
+      grossRevenue: numVal("ef-gross"),
+      ownerNetPay: numVal("ef-net"),
+      fuelCost: numVal("ef-fuel-cost"),
+      fuelGallons: numVal("ef-fuel-gallons"),
+      deductionCategories,
+      driverSettlement: {
+        earnings: numVal("ef-driver-earnings"),
+        advances: numVal("ef-driver-advances") || 0,
+        reimbursements: 0,
+        deductions: 0,
+        otherPay: numVal("ef-driver-other") || 0,
+        netPay: numVal("ef-driver-net"),
+        fines,
+      },
+      sourceFile: editModal.dataset.sourceFile || "manual entry",
+    };
+
+    if (!statement.periodStart || !statement.periodEnd) {
+      alert("Please set both a period start and end date.");
+      return;
+    }
+
+    const recordId = editModal.dataset.recordId;
+    if (recordId) {
+      window.Store.updateStatement(recordId, statement);
+      showToast("Saved changes.");
+    } else {
+      window.Store.addStatement(statement);
+      showToast("Week saved.");
+    }
+    editModal.classList.add("hidden");
+    refresh();
+    if (editModal._onDone) editModal._onDone();
   });
 
   // ---- Init ----

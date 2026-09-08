@@ -13,15 +13,19 @@
 <header class="app-header">
   <div>
     <h1>🚚 Fleet Settlement Dashboard <span class="tag" id="theme-toggle" title="Toggle theme" style="cursor:pointer">🌓</span></h1>
-    <div class="sub">Weekly owner &amp; driver settlement analysis — prototype</div>
+    <div class="sub">Weekly owner &amp; driver settlement analysis — every number below is editable</div>
   </div>
   <div class="header-actions">
     <div class="settings-row">
       Diesel $/gal (for est. MPG)
       <input type="number" id="diesel-price" step="0.01" value="3.85" />
     </div>
+    <button class="ghost" id="btn-export">Export backup</button>
+    <button class="ghost" id="btn-import">Import backup</button>
+    <input type="file" id="import-file-input" accept="application/json" class="hidden" />
     <button class="ghost" id="btn-reset">Reset to sample data</button>
     <button class="ghost" id="btn-clear">Clear all</button>
+    <button class="ghost" id="btn-add-manual">+ Add week manually</button>
     <button class="primary" id="btn-upload">+ Upload statement(s)</button>
   </div>
 </header>
@@ -44,12 +48,20 @@
   <div class="tab-panel active" id="panel-overview">
     <div class="section chart-grid">
       <div>
-        <h2>Revenue &amp; Net $/mile trend</h2>
+        <h2>RPM / Net RPM / CPM trend</h2>
         <div class="chart-box"><canvas id="chart-rpm"></canvas></div>
+      </div>
+      <div>
+        <h2>Cost per mile (CPM) vs Revenue (RPM)</h2>
+        <div class="chart-box"><canvas id="chart-cpm-rpm"></canvas></div>
       </div>
       <div>
         <h2>Deduction breakdown ($/week)</h2>
         <div class="chart-box"><canvas id="chart-cost"></canvas></div>
+      </div>
+      <div>
+        <h2>Fuel $/mile &amp; MPG</h2>
+        <div class="chart-box"><canvas id="chart-fuel"></canvas></div>
       </div>
       <div>
         <h2>Maintenance spend vs trailing average</h2>
@@ -67,11 +79,11 @@
       <h2>Truck Leaderboard (ranked by net $/mile)</h2>
       <div class="table-scroll">
         <table id="table-trucks">
-          <thead><tr><th>Truck</th><th>Weeks</th><th>Total Miles</th><th>Gross Revenue</th><th>Net Pay</th><th>Avg Revenue RPM</th><th>Avg Net RPM</th><th>Avg Deadhead %</th><th>Maintenance $/mi</th></tr></thead>
+          <thead><tr><th>Truck</th><th>Weeks</th><th>Total Miles</th><th>Gross Revenue</th><th>Net Pay</th><th>RPM</th><th>CPM</th><th>Net RPM</th><th>Deadhead %</th><th>Maint $/mi</th><th>Fuel $/mi</th><th>MPG</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="muted" style="margin-top:10px;font-size:13px">Only one truck is in the sample data, so this leaderboard becomes meaningful once you upload statements for additional trucks. Upload consistently and the "outperforming / underperforming" ranking updates automatically.</p>
+      <p class="muted" style="margin-top:10px;font-size:13px">Only one truck is in the sample data, so this leaderboard becomes meaningful once you add statements for additional trucks — RPM = revenue/mile, CPM = cost/mile (all deductions), Net RPM = RPM − CPM = owner profit/mile.</p>
     </div>
   </div>
 
@@ -99,16 +111,17 @@
   <div class="tab-panel" id="panel-data">
     <div class="section">
       <h2>Weekly Statement Data</h2>
+      <p class="muted" style="font-size:13px;margin-top:-6px">Click <strong>Edit</strong> on any row to correct or fill in numbers — fuel included. Nothing here is locked to what a PDF happened to contain.</p>
       <div class="table-scroll">
         <table id="table-weeks">
-          <thead><tr><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>Net Pay</th><th>Margin %</th><th>Maintenance</th><th>Est. MPG</th></tr></thead>
+          <thead><tr><th class="sticky-col">Actions</th><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>RPM</th><th>CPM</th><th>Net Pay</th><th>Net RPM</th><th>Margin %</th><th>Maintenance</th><th>Fuel Cost</th><th>MPG</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <div class="footer-note">Prototype — data stored only in this browser (localStorage). See README.md to run locally and PROMPT.md for the full production spec.</div>
+  <div class="footer-note">Prototype — data stored only in this browser (localStorage). Use Export backup regularly. See README.md to run locally and PROMPT.md for the full production spec.</div>
 </main>
 
 <!-- Upload modal -->
@@ -126,15 +139,64 @@
   </div>
 </div>
 
-<!-- Review/confirm modal -->
-<div class="modal-backdrop hidden" id="review-modal">
-  <div class="modal">
-    <h3>Review parsed statement</h3>
+<!-- Unified edit / add / review modal -->
+<div class="modal-backdrop hidden" id="edit-modal">
+  <div class="modal wide">
+    <h3 id="edit-modal-title">Edit statement</h3>
     <div id="review-warnings"></div>
-    <div id="review-fields"></div>
+
+    <div class="form-grid">
+      <fieldset>
+        <legend>Trip</legend>
+        <div class="field-row"><label>Statement ID</label><input id="ef-id" type="text" /></div>
+        <div class="field-row"><label>Truck unit / label</label><input id="ef-truck" type="text" placeholder="e.g. 777 · OG'ABEK" /></div>
+        <div class="field-row"><label>Driver</label><input id="ef-driver" type="text" /></div>
+        <div class="field-row"><label>Period start</label><input id="ef-start" type="date" /></div>
+        <div class="field-row"><label>Period end</label><input id="ef-end" type="date" /></div>
+        <div class="field-row"><label>Trips</label><input id="ef-trips" type="number" min="0" /></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Mileage &amp; Revenue</legend>
+        <div class="field-row"><label>Loaded miles</label><input id="ef-loaded-miles" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Empty miles</label><input id="ef-empty-miles" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Total miles</label><input id="ef-total-miles" type="number" step="0.01" placeholder="auto = loaded + empty" /></div>
+        <div class="field-row"><label>Gross revenue ($)</label><input id="ef-gross" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Owner net pay ($)</label><input id="ef-net" type="number" step="0.01" /></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Fuel</legend>
+        <div class="field-row"><label>Fuel cost ($)</label><input id="ef-fuel-cost" type="number" step="0.01" placeholder="from fuel card / receipts" /></div>
+        <div class="field-row"><label>Fuel gallons</label><input id="ef-fuel-gallons" type="number" step="0.001" placeholder="enter for exact MPG" /></div>
+        <p class="muted" style="font-size:12px;margin:4px 0 0">Leave gallons blank and MPG is estimated from the diesel price in the toolbar. Enter gallons (from a fuel receipt or card export) for exact MPG.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Deductions ($ this week)</legend>
+        <div class="field-row"><label>Company Fee</label><input id="ef-cat-companyFee" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Insurance</label><input id="ef-cat-insurance" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Trailer Rental</label><input id="ef-cat-trailer" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Maintenance</label><input id="ef-cat-maintenance" type="number" step="0.01" /></div>
+        <div class="field-row"><label>ELD</label><input id="ef-cat-eld" type="number" step="0.01" /></div>
+        <div class="field-row"><label>IFTA</label><input id="ef-cat-ifta" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Escrow</label><input id="ef-cat-escrow" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Other</label><input id="ef-cat-other" type="number" step="0.01" /></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Driver Pay</legend>
+        <div class="field-row"><label>Earnings ($)</label><input id="ef-driver-earnings" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Advances ($)</label><input id="ef-driver-advances" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Other pay ($)</label><input id="ef-driver-other" type="number" step="0.01" /></div>
+        <div class="field-row"><label>Driver net pay ($)</label><input id="ef-driver-net" type="number" step="0.01" /></div>
+      </fieldset>
+    </div>
+
     <div style="text-align:right;margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
-      <button class="ghost" id="btn-skip-review">Skip this file</button>
-      <button class="primary" id="btn-confirm-review">Confirm &amp; Save</button>
+      <button class="ghost hidden" id="btn-skip-edit">Skip this file</button>
+      <button class="ghost" id="btn-close-edit">Cancel</button>
+      <button class="primary" id="btn-save-edit">Save</button>
     </div>
   </div>
 </div>

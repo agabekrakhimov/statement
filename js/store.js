@@ -1,7 +1,11 @@
 // Thin localStorage-backed store. Swap this out for a real backend API in
-// production — the rest of the app only talks to these four functions.
+// production — the rest of the app only talks to these functions.
 
-const STORAGE_KEY = "fleet-dashboard.statements.v1";
+const STORAGE_KEY = "fleet-dashboard.statements.v2";
+
+function newRecordId() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function loadStatements() {
   try {
@@ -19,7 +23,23 @@ function saveStatements(statements) {
 
 function addStatement(stmt) {
   const all = loadStatements();
+  if (!stmt.recordId) stmt.recordId = newRecordId();
   all.push(stmt);
+  saveStatements(all);
+  return all;
+}
+
+function updateStatement(recordId, updatedStmt) {
+  const all = loadStatements();
+  const idx = all.findIndex((s) => s.recordId === recordId);
+  if (idx === -1) return all;
+  all[idx] = Object.assign({}, all[idx], updatedStmt, { recordId });
+  saveStatements(all);
+  return all;
+}
+
+function deleteStatement(recordId) {
+  const all = loadStatements().filter((s) => s.recordId !== recordId);
   saveStatements(all);
   return all;
 }
@@ -34,4 +54,30 @@ function clearAll() {
   return [];
 }
 
-window.Store = { loadStatements, saveStatements, addStatement, resetToSample, clearAll };
+function exportJSON() {
+  const data = loadStatements();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `fleet-data-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importJSON(jsonText) {
+  const parsed = JSON.parse(jsonText);
+  if (!Array.isArray(parsed)) throw new Error("Expected a JSON array of statements.");
+  const all = loadStatements();
+  const byRecordId = new Map(all.map((s) => [s.recordId, s]));
+  for (const s of parsed) {
+    if (!s.recordId) s.recordId = newRecordId();
+    byRecordId.set(s.recordId, s);
+  }
+  saveStatements(Array.from(byRecordId.values()));
+  return loadStatements();
+}
+
+window.Store = { loadStatements, saveStatements, addStatement, updateStatement, deleteStatement, resetToSample, clearAll, exportJSON, importJSON, newRecordId };

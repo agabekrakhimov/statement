@@ -1,21 +1,32 @@
 // Pure computation layer: statements[] in -> weekly metrics, truck rollups,
 // and rule-based insights out. No DOM here so it stays testable/portable.
 
-let dieselPrice = 3.85; // $/gal, editable in Settings — used only when
-                         // real gallons data isn't available.
+let dieselPrice = 3.85; // $/gal, editable in the toolbar — used only as a
+                         // fallback when real gallons aren't entered.
 function setDieselPrice(v) {
   if (v && v > 0) dieselPrice = v;
 }
 
+const DEDUCTION_CATS = [
+  { key: "companyFee", label: "Company Fee" },
+  { key: "insurance", label: "Insurance" },
+  { key: "trailer", label: "Trailer Rental" },
+  { key: "maintenance", label: "Maintenance" },
+  { key: "eld", label: "ELD" },
+  { key: "ifta", label: "IFTA" },
+  { key: "escrow", label: "Escrow" },
+  { key: "other", label: "Other" },
+];
+
 function dedupeStatements(statements) {
-  // Group by statement ID; if multiple versions disagree, keep the most
+  // Group by carrier statement ID; if two records disagree, keep the most
   // recently-listed one as authoritative but surface the conflict.
   const byId = new Map();
   const conflicts = [];
   for (const s of statements) {
     if (byId.has(s.id)) {
       const prev = byId.get(s.id);
-      if (JSON.stringify(prev.ownerNetPay) !== JSON.stringify(s.ownerNetPay)) {
+      if (prev.ownerNetPay !== s.ownerNetPay) {
         conflicts.push({ id: s.id, versions: [prev, s] });
       }
     }
@@ -24,32 +35,39 @@ function dedupeStatements(statements) {
   return { statements: Array.from(byId.values()), conflicts };
 }
 
-function sum(arr, fn) {
-  return arr.reduce((a, x) => a + fn(x), 0);
-}
-
-function deductionTotal(stmt, type) {
-  return sum(stmt.deductions.filter((d) => d.type === type), (d) => d.amount);
+function num(v) {
+  return typeof v === "number" && !isNaN(v) ? v : 0;
 }
 
 function computeWeekMetrics(stmt) {
-  const totalMiles = sum(stmt.loads, (l) => l.totalMiles);
-  const loadedMiles = sum(stmt.loads, (l) => l.loadedMiles);
-  const emptyMiles = sum(stmt.loads, (l) => l.emptyMiles);
-  const grossRevenue = sum(stmt.loads, (l) => l.gross);
-  const maintenance = deductionTotal(stmt, "Maintenance");
-  const insurance = deductionTotal(stmt, "Insurance");
-  const trailer = deductionTotal(stmt, "Trailer Rental");
-  const ifta = deductionTotal(stmt, "Ifta");
-  const eld = deductionTotal(stmt, "Eld Logbook");
-  const companyFee = deductionTotal(stmt, "Company Fee");
-  const escrow = deductionTotal(stmt, "Escrow");
-  const totalDeductions = sum(stmt.deductions, (d) => d.amount);
+  const cats = stmt.deductionCategories || {};
+  const totalDeductions = DEDUCTION_CATS.reduce((a, c) => a + num(cats[c.key]), 0);
+  const totalMiles = num(stmt.totalMiles);
+  const grossRevenue = num(stmt.grossRevenue);
+  const ownerNetPay = num(stmt.ownerNetPay);
 
-  const estGallons = stmt.fuelBalance ? stmt.fuelBalance / dieselPrice : null;
-  const estMPG = estGallons && totalMiles ? totalMiles / estGallons : null;
+  const hasFuelCost = stmt.fuelCost !== null && stmt.fuelCost !== undefined;
+  const hasFuelGallons = stmt.fuelGallons !== null && stmt.fuelGallons !== undefined && stmt.fuelGallons > 0;
+  let gallons = null;
+  let mpgIsEstimate = true;
+  if (hasFuelGallons) {
+    gallons = stmt.fuelGallons;
+    mpgIsEstimate = false;
+  } else if (hasFuelCost && stmt.fuelCost > 0) {
+    gallons = stmt.fuelCost / dieselPrice;
+    mpgIsEstimate = true;
+  }
+  const mpg = gallons && totalMiles ? totalMiles / gallons : null;
+  const fuelCost = hasFuelCost ? stmt.fuelCost : null;
+  const fuelPerMile = fuelCost && totalMiles ? fuelCost / totalMiles : null;
+
+  const byCategory = {};
+  for (const c of DEDUCTION_CATS) {
+    byCategory[c.key] = { label: c.label, total: num(cats[c.key]), perMile: totalMiles ? num(cats[c.key]) / totalMiles : 0 };
+  }
 
   return {
+    recordId: stmt.recordId,
     id: stmt.id,
     truckUnit: stmt.truckUnit,
     truckLabel: stmt.truckLabel,
@@ -58,32 +76,33 @@ function computeWeekMetrics(stmt) {
     periodEnd: stmt.periodEnd,
     trips: stmt.trips,
     totalMiles,
-    loadedMiles,
-    emptyMiles,
-    deadheadPct: totalMiles ? (emptyMiles / totalMiles) * 100 : 0,
+    loadedMiles: num(stmt.loadedMiles),
+    emptyMiles: num(stmt.emptyMiles),
+    deadheadPct: totalMiles ? (num(stmt.emptyMiles) / totalMiles) * 100 : 0,
     grossRevenue,
-    ownerNetPay: stmt.ownerNetPay,
-    rpm: totalMiles ? grossRevenue / totalMiles : 0,
-    loadedRpm: loadedMiles ? grossRevenue / loadedMiles : 0,
-    netRpm: totalMiles ? stmt.ownerNetPay / totalMiles : 0,
-    marginPct: grossRevenue ? (stmt.ownerNetPay / grossRevenue) * 100 : 0,
-    maintenance,
-    insurance,
-    trailer,
-    ifta,
-    eld,
-    companyFee,
-    escrow,
+    ownerNetPay,
+    rpm: totalMiles ? grossRevenue / totalMiles : 0, // revenue per mile
+    netRpm: totalMiles ? ownerNetPay / totalMiles : 0, // owner profit per mile
+    marginPct: grossRevenue ? (ownerNetPay / grossRevenue) * 100 : 0,
     totalDeductions,
-    costPerMile: totalMiles ? totalDeductions / totalMiles : 0,
-    maintenancePerMile: totalMiles ? maintenance / totalMiles : 0,
-    fuelBalance: stmt.fuelBalance,
-    estGallons,
-    estMPG,
+    cpm: totalMiles ? totalDeductions / totalMiles : 0, // cost per mile (all deductions)
+    byCategory,
+    maintenance: num(cats.maintenance),
+    maintenancePerMile: totalMiles ? num(cats.maintenance) / totalMiles : 0,
+    fuelCost,
+    fuelGallons: gallons,
+    fuelPerMile,
+    mpg,
+    mpgIsEstimate,
+    hasFuelData: hasFuelCost || hasFuelGallons,
     driverNetPay: stmt.driverSettlement ? stmt.driverSettlement.netPay : null,
     fines: stmt.driverSettlement ? stmt.driverSettlement.fines : [],
     conflict: !!stmt.conflictingVersions,
   };
+}
+
+function sum(arr, fn) {
+  return arr.reduce((a, x) => a + fn(x), 0);
 }
 
 function rollupByTruck(weeks) {
@@ -98,7 +117,11 @@ function rollupByTruck(weeks) {
     const totalMiles = sum(wks, (w) => w.totalMiles);
     const grossRevenue = sum(wks, (w) => w.grossRevenue);
     const netPay = sum(wks, (w) => w.ownerNetPay);
+    const totalDeductions = sum(wks, (w) => w.totalDeductions);
     const maintenance = sum(wks, (w) => w.maintenance);
+    const fuelWeeks = wks.filter((w) => w.hasFuelData);
+    const fuelCost = sum(fuelWeeks, (w) => w.fuelCost || 0);
+    const fuelGallons = sum(fuelWeeks, (w) => w.fuelGallons || 0);
     rollups.push({
       truckUnit: unit,
       truckLabel: wks[wks.length - 1].truckLabel,
@@ -107,12 +130,18 @@ function rollupByTruck(weeks) {
       totalMiles,
       grossRevenue,
       netPay,
+      totalDeductions,
       maintenance,
       avgRpm: totalMiles ? grossRevenue / totalMiles : 0,
       avgNetRpm: totalMiles ? netPay / totalMiles : 0,
+      avgCpm: totalMiles ? totalDeductions / totalMiles : 0,
       avgDeadheadPct: wks.length ? sum(wks, (w) => w.deadheadPct) / wks.length : 0,
       avgMarginPct: wks.length ? sum(wks, (w) => w.marginPct) / wks.length : 0,
       maintenancePerMile: totalMiles ? maintenance / totalMiles : 0,
+      fuelPerMile: fuelWeeks.length && totalMiles ? fuelCost / totalMiles : null,
+      avgMpg: fuelGallons > 0 ? sum(fuelWeeks, (w) => w.totalMiles) / fuelGallons : null,
+      mpgIsEstimate: fuelWeeks.some((w) => w.mpgIsEstimate),
+      hasAnyFuelData: fuelWeeks.length > 0,
     });
   }
   rollups.sort((a, b) => b.avgNetRpm - a.avgNetRpm);
@@ -175,6 +204,22 @@ function generateInsights(weeks, conflicts) {
     }
   }
 
+  // Missing fuel data — actionable, since it's now directly editable
+  const missingFuelWeeks = sorted.filter((w) => !w.hasFuelData);
+  if (missingFuelWeeks.length) {
+    insights.push({
+      severity: "warning",
+      title: `Fuel data missing for ${missingFuelWeeks.length} week(s)`,
+      detail: `${missingFuelWeeks.map((w) => w.periodStart).join(", ")} — click Edit on those rows in Weekly Data and enter fuel cost (and gallons, if you have them) to get accurate MPG and fuel $/mile instead of a diesel-price estimate.`,
+    });
+  } else if (sorted.some((w) => w.mpgIsEstimate)) {
+    insights.push({
+      severity: "info",
+      title: "MPG is estimated for some weeks",
+      detail: "Fuel cost is entered but gallons aren't, so MPG is estimated from the diesel price setting. Enter actual gallons per week (from a fuel receipt or card statement) for exact MPG.",
+    });
+  }
+
   // Unit label changed mid-stream (e.g. relabeled from driver to owner name)
   const labelsByUnit = new Map();
   for (const w of sorted) {
@@ -189,16 +234,6 @@ function generateInsights(weeks, conflicts) {
         detail: `Seen as ${Array.from(labels).map((l) => `"${l}"`).join(" and ")} across statements — treated as the same physical truck (unit ${unit}) so its trend isn't split in two.`,
       });
     }
-  }
-
-  // Missing fuel data
-  const anyFuel = sorted.some((w) => w.fuelBalance);
-  if (!anyFuel || sorted.some((w) => !w.fuelBalance)) {
-    insights.push({
-      severity: "info",
-      title: "Fuel gallons data not available",
-      detail: "Statements show only a lump-sum fuel dollar balance (or nothing) — no gallons, price/gallon, or odometer. MPG shown elsewhere is an estimate only. Connect a fuel card export (EFS/Comdata/WEX/RTS) or your IFTA quarterly report to get real MPG.",
-    });
   }
 
   // Trend: declining net RPM 3 weeks in a row (per truck)
@@ -224,4 +259,4 @@ function generateInsights(weeks, conflicts) {
   return insights;
 }
 
-window.Metrics = { dedupeStatements, computeWeekMetrics, rollupByTruck, generateInsights, setDieselPrice };
+window.Metrics = { dedupeStatements, computeWeekMetrics, rollupByTruck, generateInsights, setDieselPrice, DEDUCTION_CATS };

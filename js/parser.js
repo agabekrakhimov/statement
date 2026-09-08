@@ -3,7 +3,8 @@
 //
 // Philosophy: never throw the statement away because a regex missed. Return
 // whatever was extracted plus a list of fields that need a human to confirm
-// or fill in — the UI always shows a review form before saving.
+// or fill in — the UI always shows a review form before saving, and every
+// field (fuel included) stays editable afterward from the Weekly Data tab.
 
 function parseDate(str) {
   if (!str) return null;
@@ -32,6 +33,24 @@ function findValue(flatText, label) {
   return m ? m[1].trim() : null;
 }
 
+const CATEGORY_MAP = [
+  { re: /company\s*fee/i, key: "companyFee" },
+  { re: /insurance/i, key: "insurance" },
+  { re: /trailer/i, key: "trailer" },
+  { re: /maintenance/i, key: "maintenance" },
+  { re: /eld/i, key: "eld" },
+  { re: /ifta/i, key: "ifta" },
+  { re: /escrow/i, key: "escrow" },
+];
+function categoryKeyFor(type) {
+  const hit = CATEGORY_MAP.find((c) => c.re.test(type));
+  return hit ? hit.key : "other";
+}
+
+function emptyCategories() {
+  return { companyFee: 0, insurance: 0, trailer: 0, maintenance: 0, eld: 0, ifta: 0, escrow: 0, other: 0 };
+}
+
 function parseStatement(lines, sourceFile) {
   const warnings = [];
   const fullText = lines.join("\n"); // keeps "|" cell boundaries, for table row parsing
@@ -54,22 +73,17 @@ function parseStatement(lines, sourceFile) {
 
   const periodStart = parseDate(findValue(flatText, "Period Start"));
   const periodEnd = parseDate(findValue(flatText, "Period End"));
-  const billDate = parseDate(findValue(flatText, "Bill Date"));
-  const checkDate = parseDate(findValue(flatText, "Check Date"));
   if (!periodStart || !periodEnd) warnings.push("Could not find period start/end dates.");
 
   const tripsMatch = flatText.match(/Trips:?\s*(\d+)/i);
   const trips = tripsMatch ? parseInt(tripsMatch[1], 10) : null;
 
-  const totalGrossMatch = flatText.match(/Total\s*Gross\s*Total\s*Gross\s*[\d.]*\s*\$?([\d,]+\.\d{2})/i)
-    || flatText.match(/Total gross bill:?\s*\$?([\d,]+\.\d{2})/i);
-  const driverPayMatch = flatText.match(/Driver Pay\s*Driver Pay\s*[\d.]*\s*-?\$?\(?([\d,]+\.\d{2})/i);
-  const ownerGrossBillMatch = findValue(flatText, "Total gross bill");
   const ownerNetPayMatch = flatText.match(/Net Pay:?\s*\$?([\d,]+\.\d{2})/i);
 
   // Deductions table: lines between "Deductions" section header and its "Total:"
-  const deductions = [];
+  const deductionCategories = emptyCategories();
   const dedStart = lines.findIndex((l) => /^Deductions\s*$/i.test(l.trim()) || /^\s*Deductions\s*\|/i.test(l));
+  let foundAnyDeduction = false;
   if (dedStart >= 0) {
     for (let i = dedStart + 1; i < lines.length; i++) {
       const l = lines[i];
@@ -81,14 +95,12 @@ function parseStatement(lines, sourceFile) {
       if (amount === null) continue;
       const type = cells[0];
       if (!/^[A-Za-z]/.test(type)) continue;
-      deductions.push({
-        type,
-        description: cells.length > 3 ? cells.slice(2, -2).join(" ") : undefined,
-        amount,
-      });
+      deductionCategories[categoryKeyFor(type)] += amount;
+      foundAnyDeduction = true;
     }
-  } else {
-    warnings.push("Could not locate the Deductions table — add deduction line items manually.");
+  }
+  if (!foundAnyDeduction) {
+    warnings.push("Could not locate the Deductions table — add deduction amounts manually.");
   }
 
   // Loads table ("Total Gross" section on the owner-settlement page). Table
@@ -115,32 +127,30 @@ function parseStatement(lines, sourceFile) {
       for (const d of dollarMatches) stripped = stripped.replace(d, " ");
       for (const d of dateMatches) stripped = stripped.replace(d, " ");
       if (loadNumber) stripped = stripped.replace(loadNumber, " ");
-      const routeText = stripped.replace(/[\d,]+\.\d{1,2}/g, " ").replace(/\s+/g, " ").trim();
       const mileNums = (stripped.match(/[\d,]+\.\d{1,2}/g) || []).map((n) => money(n)).slice(-3);
       const [loadedMiles, emptyMiles, totalMilesRaw] = mileNums.length === 3 ? mileNums : [null, null, null];
       const totalMiles = totalMilesRaw !== null ? totalMilesRaw : (loadedMiles !== null && emptyMiles !== null ? loadedMiles + emptyMiles : null);
 
       loads.push({
         loadNumber,
-        route: routeText || undefined,
-        delDate: parseDate(dateMatches[0]),
-        puDate: parseDate(dateMatches[1]),
         loadedMiles,
         emptyMiles,
         totalMiles,
         gross: dollarMatches[0] ? money(dollarMatches[0]) : null,
-        driverPayment: dollarMatches[1] ? money(dollarMatches[1]) : null,
       });
     }
   } else {
-    warnings.push("Could not locate the load/trip table — add loads manually for accurate mileage metrics.");
+    warnings.push("Could not locate the load/trip table — add total miles and gross revenue manually.");
   }
   const cleanLoads = loads.filter((l) => l.loadNumber && l.totalMiles !== null);
   if (loadsStart >= 0 && cleanLoads.length === 0) {
-    warnings.push("Load table found but rows didn't parse cleanly — please review.");
-  } else if (loadsStart >= 0 && cleanLoads.length < loads.length) {
-    warnings.push(`${loads.length - cleanLoads.length} load row(s) didn't parse cleanly and were skipped — please double-check total miles.`);
+    warnings.push("Load table found but rows didn't parse cleanly — please fill in miles and revenue.");
   }
+
+  const loadedMiles = cleanLoads.reduce((a, l) => a + (l.loadedMiles || 0), 0) || null;
+  const emptyMiles = cleanLoads.reduce((a, l) => a + (l.emptyMiles || 0), 0) || null;
+  const totalMiles = cleanLoads.reduce((a, l) => a + (l.totalMiles || 0), 0) || null;
+  const grossRevenue = cleanLoads.reduce((a, l) => a + (l.gross || 0), 0) || null;
 
   const fuelMatch = flatText.match(/Fuel\s*\$?([\d,]+\.\d{2})/i);
 
@@ -152,17 +162,16 @@ function parseStatement(lines, sourceFile) {
       driver: driver || "Unknown driver",
       periodStart,
       periodEnd,
-      billDate,
-      checkDate,
       trips: trips || cleanLoads.length,
-      totalGross: totalGrossMatch ? money(totalGrossMatch[1]) : null,
-      driverPayGross: driverPayMatch ? money(driverPayMatch[1]) : null,
-      ownerGrossBill: money(ownerGrossBillMatch),
-      deductions,
+      loadedMiles,
+      emptyMiles,
+      totalMiles,
+      grossRevenue,
       ownerNetPay: ownerNetPayMatch ? money(ownerNetPayMatch[1]) : null,
-      loads: cleanLoads,
+      deductionCategories,
       driverSettlement: { earnings: null, advances: 0, reimbursements: 0, deductions: 0, otherPay: 0, netPay: null, fines: [] },
-      fuelBalance: fuelMatch ? money(fuelMatch[1]) : null,
+      fuelCost: fuelMatch ? money(fuelMatch[1]) : null,
+      fuelGallons: null,
       sourceFile,
     },
     warnings,
