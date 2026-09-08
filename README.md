@@ -104,6 +104,26 @@ already filled in, but blanks out everything specific to that week's
 trip — miles, revenue, net pay, fuel, maintenance — so it's never
 mistaken for real data until you fill those in.
 
+## Fixed costs & breakeven
+
+The **Truck Comparison** tab has a **Fixed Costs & Breakeven** section —
+none of this is on a carrier statement (truck payment/lease, physical
+damage insurance, permits, ELD hardware, parking/tolls), but it's real
+cost that has to be covered before a truck is actually profitable.
+Enter it once per truck, as a monthly figure; the app converts it to a
+weekly and per-mile cost using that truck's own average weekly mileage
+and computes a **breakeven RPM** — the revenue/mile the truck needs just
+to cover deductions, fuel, and fixed costs. If a truck's actual RPM falls
+below that, it shows up as a critical insight, not just a quiet number in
+a table.
+
+## Notes
+
+Every week's edit form has a free-text **Notes** field for anything worth
+remembering that doesn't fit a number — a bad lane, a broker to avoid, why
+a load was mostly deadhead. It shows as a 📝 preview (full text on hover)
+in the Weekly Data table.
+
 ## Known limitations (this prototype)
 
 - One statement template is auto-parsed out of the box (Wenze Transport

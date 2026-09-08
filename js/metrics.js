@@ -122,6 +122,7 @@ function computeWeekMetrics(stmt) {
     driverNetPay: stmt.driverSettlement ? stmt.driverSettlement.netPay : null,
     fines: stmt.driverSettlement ? stmt.driverSettlement.fines : [],
     conflict: !!stmt.conflictingVersions,
+    notes: stmt.notes || "",
   };
 }
 
@@ -318,4 +319,38 @@ function generateInsights(weeks, conflicts) {
   return insights;
 }
 
-window.Metrics = { dedupeStatements, computeWeekMetrics, rollupByTruck, generateInsights, setDieselPrice, DEDUCTION_CATS };
+const FIXED_COST_FIELDS = [
+  { key: "truckPayment", label: "Truck Payment / Lease" },
+  { key: "physicalDamageIns", label: "Physical Damage Insurance" },
+  { key: "permits", label: "Permits & Plates" },
+  { key: "eldHardware", label: "ELD Hardware (amortized)" },
+  { key: "parkingTolls", label: "Parking / Tolls (avg)" },
+  { key: "other", label: "Other Fixed Costs" },
+];
+
+// Fixed costs never show up on a carrier settlement, so RPM/CPM alone can
+// say a truck is "profitable" when it isn't once the truck payment and
+// other overhead are counted. `monthlyCosts` is a {key: $} map keyed by
+// FIXED_COST_FIELDS above; everything converts to a weekly and per-mile
+// figure using the truck's own average weekly mileage.
+function computeBreakeven(rollup, monthlyCosts) {
+  const monthlyTotal = FIXED_COST_FIELDS.reduce((a, f) => a + num(monthlyCosts && monthlyCosts[f.key]), 0);
+  const weeklyFixed = (monthlyTotal * 12) / 52; // avoids the 4.33-weeks/month approximation drifting over a year
+  const avgWeeklyMiles = rollup.weekCount ? rollup.totalMiles / rollup.weekCount : 0;
+  const fixedPerMile = avgWeeklyMiles ? weeklyFixed / avgWeeklyMiles : 0;
+  const fuelPerMile = rollup.hasAnyFuelData ? rollup.fuelPerMile || 0 : 0;
+  const breakevenRpm = rollup.avgCpm + fuelPerMile + fixedPerMile;
+  const marginPerMile = rollup.avgRpm - breakevenRpm;
+  return {
+    monthlyTotal,
+    weeklyFixed,
+    fixedPerMile,
+    breakevenRpm,
+    marginPerMile,
+    weeklyMarginDollars: marginPerMile * avgWeeklyMiles,
+    hasFixedCosts: monthlyTotal > 0,
+    fuelAssumedZero: !rollup.hasAnyFuelData,
+  };
+}
+
+window.Metrics = { dedupeStatements, computeWeekMetrics, rollupByTruck, generateInsights, setDieselPrice, computeBreakeven, DEDUCTION_CATS, FIXED_COST_FIELDS };

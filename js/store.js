@@ -2,6 +2,7 @@
 // production — the rest of the app only talks to these functions.
 
 const STORAGE_KEY = "fleet-dashboard.statements.v2";
+const FIXED_COSTS_KEY = "fleet-dashboard.fixedCosts.v1";
 
 function newRecordId() {
   return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -54,8 +55,28 @@ function clearAll() {
   return [];
 }
 
+// Fixed costs never appear on a carrier settlement (truck payment, permits,
+// physical-damage insurance, ELD hardware...) but matter for a true
+// breakeven number, so they're tracked separately, per truck, as monthly $.
+function loadFixedCosts() {
+  try {
+    const raw = localStorage.getItem(FIXED_COSTS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn("Failed to read fixed costs.", e);
+  }
+  return {};
+}
+
+function saveFixedCostsForTruck(truckUnit, costs) {
+  const all = loadFixedCosts();
+  all[truckUnit] = costs;
+  localStorage.setItem(FIXED_COSTS_KEY, JSON.stringify(all));
+  return all;
+}
+
 function exportJSON() {
-  const data = loadStatements();
+  const data = { statements: loadStatements(), fixedCosts: loadFixedCosts() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -95,15 +116,27 @@ function exportCSV(weeks) {
 
 function importJSON(jsonText) {
   const parsed = JSON.parse(jsonText);
-  if (!Array.isArray(parsed)) throw new Error("Expected a JSON array of statements.");
+  // Accept both the current {statements, fixedCosts} export shape and a
+  // bare array (older backups, or a hand-built import).
+  const statementsIn = Array.isArray(parsed) ? parsed : parsed.statements;
+  if (!Array.isArray(statementsIn)) throw new Error("Expected a JSON array of statements, or {statements, fixedCosts}.");
+
   const all = loadStatements();
   const byRecordId = new Map(all.map((s) => [s.recordId, s]));
-  for (const s of parsed) {
+  for (const s of statementsIn) {
     if (!s.recordId) s.recordId = newRecordId();
     byRecordId.set(s.recordId, s);
   }
   saveStatements(Array.from(byRecordId.values()));
+
+  if (parsed.fixedCosts && typeof parsed.fixedCosts === "object") {
+    const existing = loadFixedCosts();
+    localStorage.setItem(FIXED_COSTS_KEY, JSON.stringify(Object.assign({}, existing, parsed.fixedCosts)));
+  }
   return loadStatements();
 }
 
-window.Store = { loadStatements, saveStatements, addStatement, updateStatement, deleteStatement, resetToSample, clearAll, exportJSON, exportCSV, importJSON, newRecordId };
+window.Store = {
+  loadStatements, saveStatements, addStatement, updateStatement, deleteStatement, resetToSample, clearAll,
+  exportJSON, exportCSV, importJSON, newRecordId, loadFixedCosts, saveFixedCostsForTruck,
+};

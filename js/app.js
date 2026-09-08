@@ -30,10 +30,24 @@
     const rollups = window.Metrics.rollupByTruck(weeks);
     const insights = window.Metrics.generateInsights(weeks, conflicts);
 
+    const fixedCosts = window.Store.loadFixedCosts();
+    const breakevens = new Map(rollups.map((r) => [r.truckUnit, window.Metrics.computeBreakeven(r, fixedCosts[r.truckUnit])]));
+    for (const r of rollups) {
+      const b = breakevens.get(r.truckUnit);
+      if (b.hasFixedCosts && b.marginPerMile < 0) {
+        insights.unshift({
+          severity: "critical",
+          title: `Truck ${r.truckLabel} is running below breakeven`,
+          detail: `Once its $${b.weeklyFixed.toFixed(0)}/week fixed costs (truck payment, permits, etc.) and fuel are counted, it needs $${b.breakevenRpm.toFixed(2)}/mi just to break even — it's averaging $${r.avgRpm.toFixed(2)}/mi, about $${Math.abs(b.weeklyMarginDollars).toFixed(0)}/week underwater. See Fixed Costs & Breakeven on the Truck Comparison tab.`,
+        });
+      }
+    }
+
     renderInsights(insights);
     renderKpis(weeks, rollups);
     renderCharts(weeks, rollups);
     renderTruckTable(rollups);
+    renderFixedCostsTable(rollups, fixedCosts, breakevens);
     renderDriverTables(statements, weeks);
     renderWeekTable(raw, weeks);
   }
@@ -125,6 +139,44 @@
       .join("");
   }
 
+  function renderFixedCostsTable(rollups, fixedCosts, breakevens) {
+    const fields = window.Metrics.FIXED_COST_FIELDS;
+    const headerRow = document.getElementById("fixed-costs-header");
+    headerRow.innerHTML = `<th>Truck</th>${fields.map((f) => `<th>${f.label}</th>`).join("")}<th>Weekly Fixed $</th><th>Fixed $/mi</th><th>Breakeven RPM</th><th>Actual RPM</th><th>Margin/mi</th>`;
+
+    const tbody = document.querySelector("#table-fixed-costs tbody");
+    tbody.innerHTML = rollups
+      .map((r) => {
+        const costs = fixedCosts[r.truckUnit] || {};
+        const b = breakevens.get(r.truckUnit);
+        const marginClass = !b.hasFixedCosts ? "" : b.marginPerMile >= 0 ? 'style="color:var(--good)"' : 'style="color:var(--bad);font-weight:700"';
+        return `<tr data-truck="${r.truckUnit}">
+          <td>${r.truckLabel}</td>
+          ${fields.map((f) => `<td><input type="number" step="1" min="0" class="fc-input" data-field="${f.key}" value="${costs[f.key] || ""}" placeholder="0" style="width:90px" /></td>`).join("")}
+          <td>${fmtMoney(b.weeklyFixed)}</td>
+          <td>${fmtPerMile(b.fixedPerMile)}</td>
+          <td>${fmtPerMile(b.breakevenRpm)}</td>
+          <td>${fmtPerMile(r.avgRpm)}</td>
+          <td ${marginClass}>${b.hasFixedCosts ? fmtPerMile(b.marginPerMile) : "enter costs →"}</td>
+        </tr>`;
+      })
+      .join("");
+
+    tbody.querySelectorAll(".fc-input").forEach((input) => {
+      input.addEventListener("change", () => {
+        const truckUnit = input.closest("tr").dataset.truck;
+        const costs = Object.assign({}, window.Store.loadFixedCosts()[truckUnit]);
+        costs[input.dataset.field] = parseFloat(input.value) || 0;
+        window.Store.saveFixedCostsForTruck(truckUnit, costs);
+        showToast("Fixed costs saved.");
+        // Deferred: rebuilding this table's innerHTML synchronously inside
+        // its own input's change handler races the browser's blur/change
+        // dispatch on that same input and throws. Let this tick finish first.
+        setTimeout(refresh, 0);
+      });
+    });
+  }
+
   function renderDriverTables(statements, weeks) {
     const dbody = document.querySelector("#table-driver tbody");
     dbody.innerHTML = statements
@@ -170,6 +222,7 @@
         <td>${fmtMoney(w.maintenance)}</td>
         <td>${w.hasFuelData ? fmtMoney(w.fuelCost) : '<span class="tag" style="color:var(--bad);border-color:var(--bad)">missing</span>'}</td>
         <td>${w.mpg ? w.mpg.toFixed(1) + (w.mpgIsEstimate ? " (est.)" : "") : "—"}</td>
+        <td>${w.notes ? `<span title="${w.notes.replace(/"/g, "&quot;")}">📝 ${w.notes.length > 24 ? w.notes.slice(0, 24) + "…" : w.notes}</span>` : '<span class="muted">—</span>'}</td>
       </tr>`)
       .join("");
 
@@ -214,6 +267,7 @@
       fuelCost: null, fuelGallons: null,
       deductionCategories: Object.assign({}, statement.deductionCategories, { maintenance: 0, other: 0 }),
       driverSettlement: { earnings: null, advances: 0, otherPay: 0, netPay: null, fines: [] },
+      notes: "",
       sourceFile: "duplicated from " + statement.id,
     });
     openEditModal(next, { isNew: true, sourceLabel: `New week, carried forward from ${statement.id}` });
@@ -381,6 +435,7 @@
     document.getElementById("ef-driver-advances").value = n(ds.advances);
     document.getElementById("ef-driver-other").value = n(ds.otherPay);
     document.getElementById("ef-driver-net").value = n(ds.netPay);
+    document.getElementById("ef-notes").value = s.notes || "";
 
     editModal.dataset.recordId = statement ? statement.recordId || "" : "";
     editModal.dataset.isNew = opts.isNew ? "1" : "";
@@ -439,6 +494,7 @@
         netPay: numVal("ef-driver-net"),
         fines,
       },
+      notes: val("ef-notes").trim(),
       sourceFile: editModal.dataset.sourceFile || "manual entry",
     };
 

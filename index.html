@@ -89,6 +89,17 @@
       </div>
       <p class="muted" style="margin-top:10px;font-size:13px">Ranked by <strong>True RPM</strong> (profit per mile after fuel) — that's the number that actually says which truck is outperforming. RPM = revenue/mile, CPM = cost/mile excl. fuel, All-in CPM = cost/mile incl. fuel. Only one truck is in the sample data; this becomes a real comparison once you add more.</p>
     </div>
+
+    <div class="section">
+      <h2>Fixed Costs &amp; Breakeven</h2>
+      <p class="muted" style="font-size:13px;margin-top:-6px">None of this is on a carrier statement, but it's real cost — enter it once per truck and the breakeven RPM below accounts for it. Figures are monthly; the app converts to a weekly and per-mile cost using that truck's own average weekly mileage.</p>
+      <div class="table-scroll">
+        <table id="table-fixed-costs">
+          <thead><tr id="fixed-costs-header"></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div class="tab-panel" id="panel-driver">
@@ -118,7 +129,7 @@
       <p class="muted" style="font-size:13px;margin-top:-6px">Click <strong>Edit</strong> on any row to correct or fill in numbers — fuel included. Nothing here is locked to what a PDF happened to contain.</p>
       <div class="table-scroll">
         <table id="table-weeks">
-          <thead><tr><th class="sticky-col">Actions</th><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>RPM</th><th>CPM</th><th>Carrier Net</th><th>True Profit</th><th>True RPM</th><th>Margin %</th><th>Maintenance</th><th>Fuel Cost</th><th>MPG</th></tr></thead>
+          <thead><tr><th class="sticky-col">Actions</th><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>RPM</th><th>CPM</th><th>Carrier Net</th><th>True Profit</th><th>True RPM</th><th>Margin %</th><th>Maintenance</th><th>Fuel Cost</th><th>MPG</th><th>Notes</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -194,6 +205,11 @@
         <div class="field-row"><label>Advances ($)</label><input id="ef-driver-advances" type="number" step="0.01" /></div>
         <div class="field-row"><label>Other pay ($)</label><input id="ef-driver-other" type="number" step="0.01" /></div>
         <div class="field-row"><label>Driver net pay ($)</label><input id="ef-driver-net" type="number" step="0.01" /></div>
+      </fieldset>
+
+      <fieldset style="grid-column: 1 / -1">
+        <legend>Notes (lanes, brokers, anything worth remembering about this week)</legend>
+        <textarea id="ef-notes" rows="2" style="width:100%;font:inherit;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);resize:vertical" placeholder="e.g. Port Chester load was a short drayage move, mostly deadhead both ways — ask dispatch to avoid rebooking that lane."></textarea>
       </fieldset>
     </div>
 
