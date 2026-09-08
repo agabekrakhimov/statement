@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fleet Settlement Dashboard</title>
+<link rel="stylesheet" href="css/styles.css" />
+<script src="vendor/chart.umd.js"></script>
+<script src="vendor/pdf.min.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>🚚 Fleet Settlement Dashboard <span class="tag" id="theme-toggle" title="Toggle theme" style="cursor:pointer">🌓</span></h1>
+    <div class="sub">Weekly owner &amp; driver settlement analysis — prototype</div>
+  </div>
+  <div class="header-actions">
+    <div class="settings-row">
+      Diesel $/gal (for est. MPG)
+      <input type="number" id="diesel-price" step="0.01" value="3.85" />
+    </div>
+    <button class="ghost" id="btn-reset">Reset to sample data</button>
+    <button class="ghost" id="btn-clear">Clear all</button>
+    <button class="primary" id="btn-upload">+ Upload statement(s)</button>
+  </div>
+</header>
+
+<main>
+  <div id="insights-section" class="section">
+    <h2>Deep Analysis — What Needs Attention</h2>
+    <div id="insights-list"></div>
+  </div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="trucks">Truck Comparison</div>
+    <div class="tab" data-tab="driver">Driver Pay</div>
+    <div class="tab" data-tab="data">Weekly Data</div>
+  </div>
+
+  <div class="tab-panel active" id="panel-overview">
+    <div class="section chart-grid">
+      <div>
+        <h2>Revenue &amp; Net $/mile trend</h2>
+        <div class="chart-box"><canvas id="chart-rpm"></canvas></div>
+      </div>
+      <div>
+        <h2>Deduction breakdown ($/week)</h2>
+        <div class="chart-box"><canvas id="chart-cost"></canvas></div>
+      </div>
+      <div>
+        <h2>Maintenance spend vs trailing average</h2>
+        <div class="chart-box"><canvas id="chart-maint"></canvas></div>
+      </div>
+      <div>
+        <h2>Deadhead % per week</h2>
+        <div class="chart-box"><canvas id="chart-deadhead"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-trucks">
+    <div class="section">
+      <h2>Truck Leaderboard (ranked by net $/mile)</h2>
+      <div class="table-scroll">
+        <table id="table-trucks">
+          <thead><tr><th>Truck</th><th>Weeks</th><th>Total Miles</th><th>Gross Revenue</th><th>Net Pay</th><th>Avg Revenue RPM</th><th>Avg Net RPM</th><th>Avg Deadhead %</th><th>Maintenance $/mi</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:10px;font-size:13px">Only one truck is in the sample data, so this leaderboard becomes meaningful once you upload statements for additional trucks. Upload consistently and the "outperforming / underperforming" ranking updates automatically.</p>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-driver">
+    <div class="section">
+      <h2>Driver Net Pay by Week</h2>
+      <div class="table-scroll">
+        <table id="table-driver">
+          <thead><tr><th>Week</th><th>Driver</th><th>Truck</th><th>Earnings</th><th>Advances</th><th>Other Pay</th><th>Net Pay</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Compliance Log (fines / violations)</h2>
+      <div class="table-scroll">
+        <table id="table-fines">
+          <thead><tr><th>Week</th><th>Driver</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-data">
+    <div class="section">
+      <h2>Weekly Statement Data</h2>
+      <div class="table-scroll">
+        <table id="table-weeks">
+          <thead><tr><th>Week</th><th>Truck</th><th>Statement</th><th>Trips</th><th>Miles</th><th>Deadhead %</th><th>Gross</th><th>Net Pay</th><th>Margin %</th><th>Maintenance</th><th>Est. MPG</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Prototype — data stored only in this browser (localStorage). See README.md to run locally and PROMPT.md for the full production spec.</div>
+</main>
+
+<!-- Upload modal -->
+<div class="modal-backdrop hidden" id="upload-modal">
+  <div class="modal">
+    <h3>Upload weekly statement(s)</h3>
+    <div class="dropzone" id="dropzone">
+      Drop PDF file(s) here, or click to choose<br/>
+      <input type="file" id="file-input" accept="application/pdf" multiple class="hidden" />
+    </div>
+    <div id="upload-progress" class="muted" style="margin-top:10px;font-size:13px"></div>
+    <div style="text-align:right;margin-top:14px">
+      <button class="ghost" id="btn-close-upload">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review/confirm modal -->
+<div class="modal-backdrop hidden" id="review-modal">
+  <div class="modal">
+    <h3>Review parsed statement</h3>
+    <div id="review-warnings"></div>
+    <div id="review-fields"></div>
+    <div style="text-align:right;margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="ghost" id="btn-skip-review">Skip this file</button>
+      <button class="primary" id="btn-confirm-review">Confirm &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/sample-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/metrics.js"></script>
+<script src="js/charts.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
+  }
+</script>
+<script src="js/pdf-lines.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
