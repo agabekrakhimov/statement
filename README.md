@@ -32,7 +32,12 @@ fuel-economy numbers and a true owner P&L.
 
 - `report/index.html` — standalone interactive report for the Oct 12–25 settlements
   (trucks 777 & 7777): KPIs, ranked red flags, truck-vs-truck scorecard, % of gross,
-  RPM vs CPM, MPG, deadhead and per-load rate charts. Open it directly in a browser.
+  RPM vs CPM, MPG, deadhead and per-load rate charts. Open it directly in a browser
+  (uses the bundled `report/data.js`). When hosted as a claude.ai artifact it reads
+  and writes a live database (`settlements/<BL-id>` documents), recomputes red flags
+  automatically, and lets you upload a new settlement PDF: pdf.js extracts the text
+  in the browser, Claude converts it to rows, the page checks the totals foot, then
+  you save it.
 - `powerbi/` — the same data as a Power BI / Microsoft Fabric star schema (xlsx + CSV),
   DAX measures and a step-by-step build guide. See `powerbi/README.md`.
 

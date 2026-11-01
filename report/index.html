@@ -91,6 +91,19 @@ svg g.mark:hover .bar { opacity: .8; }
 .pill.bad { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-text); }
 details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px; }
 #oneTime td:nth-child(4), #oneTime td:nth-child(3) { white-space: normal; }
+.status { font-size: 12px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+.status.live .dot { background: var(--good); }
+.status.err .dot { background: var(--critical); }
+.btn { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
+.btn.primary { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+.btn.danger { color: var(--critical-text); }
+.btn:disabled { opacity: .5; cursor: default; }
+.drop { border: 2px dashed var(--border); border-radius: 12px; padding: 18px; text-align: center; color: var(--text-secondary); margin-top: 10px; }
+.drop.over { border-color: var(--s1); }
+.preview { margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
+.preview .ok { color: var(--good-text); font-weight: 600; }
+.preview .bad { color: var(--critical-text); font-weight: 600; }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -100,14 +113,11 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   <header>
     <div>
       <h1>Fleet Report — Trucks 777 &amp; 7777</h1>
-      <p class="sub">Wenze Transport Services settlements BL-001023, -001024, -001050, -001051 · weeks of Oct 12 &amp; Oct 19, 2026</p>
+      <p class="sub" id="subtitle">Loading…</p>
+      <p class="status" id="dbStatus"><span class="dot"></span><span>Connecting to database…</span></p>
     </div>
     <div class="controls">
-      <div class="seg" role="group" aria-label="Week filter" id="weekSeg">
-        <button data-week="all" aria-pressed="true">Both weeks</button>
-        <button data-week="2026-10-12" aria-pressed="false">Oct 12–18</button>
-        <button data-week="2026-10-19" aria-pressed="false">Oct 19–25</button>
-      </div>
+      <div class="seg" role="group" aria-label="Week filter" id="weekSeg"></div>
       <div class="seg" role="group" aria-label="Theme" id="themeSeg">
         <button data-theme="auto" aria-pressed="true">Auto</button>
         <button data-theme="light" aria-pressed="false">Light</button>
@@ -119,9 +129,15 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   <section class="grid kpis" id="kpis"></section>
 
   <section class="card full">
-    <h2>🚩 Red flags — fix or question these first</h2>
-    <p class="muted">Ranked by dollar impact. All four statements were checked to foot (gross − driver pay + reimbursements − deductions = net pay); they do.</p>
-    <ul class="flags" id="flags"></ul>
+    <h2>🚩 Automatic red flags</h2>
+    <p class="muted">Re-checked every time a statement is added: deadhead over 15%, MPG under 6.5, weeks that lost money, loads paying below cost per mile, maintenance over $0.10/mi, one-time charges, and statements that don't add up.</p>
+    <ul class="flags" id="autoFlags"></ul>
+  </section>
+
+  <section class="card full">
+    <h2>My review of the Oct 12–25 statements</h2>
+    <p class="muted">Written notes on BL-001023, -001024, -001050 and -001051, ranked by dollar impact.</p>
+    <details open><summary>Show / hide</summary><ul class="flags" id="flags"></ul></details>
   </section>
 
   <section class="card full">
@@ -205,25 +221,56 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     <div class="recs" id="recs"></div>
   </section>
 
+  <section class="card full" id="manage">
+    <h2>Statements in the database</h2>
+    <p class="muted">Upload a new weekly settlement PDF: it's read in your browser, Claude turns it into rows, you check the totals, then save. Everyone you share this page with sees the update.</p>
+    <div class="tablewrap"><table id="stmtTable"></table></div>
+    <div class="drop" id="drop">
+      <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+      <button class="btn primary" id="pickBtn">Upload settlement PDF</button>
+      <div class="muted" style="margin-top:6px">or drop PDFs here · Wenze / datatruck.io "Truck Owner Settlement" format</div>
+    </div>
+    <div id="uploadArea"></div>
+  </section>
+
   <footer>Built from the four PDF settlements. Data model + Power BI/Fabric files are in <code>powerbi/</code>. Regenerate with <code>python3 powerbi/build_model.py</code>.</footer>
 </div>
 
 <script src="data.js"></script>
+<script src="vendor/pdf.min.js"></script>
 <script>
 (() => {
-const D = window.FLEET;
-const TRUCKS = ["7777", "777"];
-const TC = { "7777": "var(--s1)", "777": "var(--s2)" };
-const DRIVER = { "7777": "Robert", "777": "Damarion" };
-const WEEKS = ["2026-10-12", "2026-10-19"];
-const WLABEL = { "2026-10-12": "Oct 12–18", "2026-10-19": "Oct 19–25" };
+let D = null, TRUCKS = [], TC = {}, DRIVER = {}, RATE = {}, WEEKS = [], WLABEL = {};
 let week = "all";
+const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s7)", "var(--s5)", "var(--s4)", "var(--s6)", "var(--s8)"];
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function weekLabel(ws) {
+  const a = new Date(ws + "T00:00:00Z"), b = new Date(a.getTime() + 6 * 864e5);
+  return a.getUTCMonth() === b.getUTCMonth() ? `${MON[a.getUTCMonth()]} ${a.getUTCDate()}–${b.getUTCDate()}` : `${MON[a.getUTCMonth()]} ${a.getUTCDate()} – ${MON[b.getUTCMonth()]} ${b.getUTCDate()}`;
+}
+function setData(d) {
+  D = d;
+  // trucks: stable colour by sorted id so a truck keeps its colour as data grows
+  const ids = [...new Set(d.settlements.map((s) => s.TruckID))].sort((a, b) => b.length - a.length || a.localeCompare(b));
+  TRUCKS = ids; TC = {}; DRIVER = {}; RATE = {};
+  ids.forEach((t, i) => (TC[t] = SLOTS[i % SLOTS.length]));
+  d.trucks.forEach((t) => { DRIVER[t.TruckID] = (t.Driver || "").split(" ")[0]; RATE[t.TruckID] = t.DriverRatePerMile; });
+  WEEKS = [...new Set(d.settlements.map((s) => s.WeekStart))].sort();
+  WLABEL = Object.fromEntries(WEEKS.map((w) => [w, weekLabel(w)]));
+  if (week !== "all" && !WEEKS.includes(week)) week = "all";
+  $("#weekSeg").innerHTML = [["all", WEEKS.length === 2 ? "Both weeks" : `All ${WEEKS.length} weeks`], ...WEEKS.map((w) => [w, WLABEL[w]])]
+    .map(([k, l]) => `<button data-week="${k}" aria-pressed="${k === week}">${l}</button>`).join("");
+  const ids2 = d.settlements.map((s) => s.SettlementID).sort();
+  $("#subtitle").textContent = WEEKS.length ? `${d.settlements.length} settlements (${ids2[0]} … ${ids2[ids2.length - 1]}) · ${WLABEL[WEEKS[0]]}${WEEKS.length > 1 ? " → " + WLABEL[WEEKS[WEEKS.length - 1]] : ""}, ${WEEKS[WEEKS.length - 1].slice(0, 4)}` : "No statements yet — upload one below.";
+  document.title = `Fleet Report · ${TRUCKS.map((t) => "Truck " + t).join(", ")}`;
+}
 
 const $ = (s) => document.querySelector(s);
-const money = (v, d = 0) => (v < 0 ? "−" : "") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-const pm = (v) => "$" + v.toFixed(2);
-const pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
-const num = (v, d = 0) => v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+const ok = (v) => typeof v === "number" && isFinite(v);
+const money = (v, d = 0) => !ok(v) ? "—" : (v < 0 ? "−" : "") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pm = (v) => !ok(v) ? "—" : (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(2);
+const pct = (v, d = 1) => !ok(v) ? "—" : (v * 100).toFixed(d) + "%";
+const num = (v, d = 0) => !ok(v) ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
 
 // ---- metrics for the current filter (recomputed client-side from facts) ----
 function m(truck) {
@@ -260,12 +307,13 @@ function barPath(x, y, w, h, horiz) {
   if (horiz) return `M${x},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x} Z`;
   return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
 }
-function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function niceMax(v) { if (!(v > 0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
 
 // grouped vertical bars. groups: [{label, bars:[{value, color, tip, label}]}]
 function vbars(target, groups, { fmt, ref, refLabel, height = 240, max } = {}) {
   const W = 560, H = height, P = { l: 44, r: 8, t: 18, b: 34 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  groups.forEach((g) => g.bars.forEach((b) => { if (!ok(b.value)) { b.value = 0; b.showLabel = false; } }));
   const all = groups.flatMap((g) => g.bars.map((b) => b.value));
   const ymax = max || niceMax(Math.max(...all, ref || 0) * 1.08);
   const y = (v) => P.t + (H - P.t - P.b) * (1 - v / ymax);
@@ -292,7 +340,8 @@ function vbars(target, groups, { fmt, ref, refLabel, height = 240, max } = {}) {
 function hbars(target, rows, { fmt, ref, refLabel, max }) {
   const W = 560, rowH = 24, P = { l: 178, r: 56, t: 20, b: 8 }, H = P.t + P.b + rows.length * rowH;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
-  const xmax = max || niceMax(Math.max(...rows.map((r) => r.value), ref || 0) * 1.05);
+  rows.forEach((r) => { if (!ok(r.value)) r.value = 0; });
+  const xmax = max || niceMax(Math.max(...rows.map((r) => r.value), ref || 0.01) * 1.05);
   const x = (v) => P.l + (W - P.l - P.r) * (v / xmax);
   rows.forEach((r, i) => {
     const yy = P.t + i * rowH, gm = el("g", { class: "mark" }, svg);
@@ -343,9 +392,10 @@ function pctChart(ms) {
 }
 
 // ---- render ----
-function render() {
+var render = function () {
   const fleet = m(), byT = Object.fromEntries(TRUCKS.map((t) => [t, m(t)]));
-  const label = week === "all" ? "2 weeks" : WLABEL[week];
+  if (!D || !D.settlements.length) return;
+  const label = week === "all" ? `${WEEKS.length} week${WEEKS.length > 1 ? "s" : ""}` : WLABEL[week];
 
   // KPIs
   const k = [
@@ -363,12 +413,12 @@ function render() {
 
   // Scorecard: [label, fn, fmt, higherIsBetter]
   const rows = [
-    ["Driver", (x, t) => DRIVER[t] + (t === "777" ? " ($0.65→$0.70/mi)" : " ($0.75/mi)"), null],
+    ["Driver", (x, t) => `${DRIVER[t]} (${RATE[t] ? "$" + RATE[t].toFixed(2) + "/mi" : "—"})`, null],
     ["Loads", (x) => x.L.length, (v) => v, null],
     ["Gross revenue", (x) => x.gross, (v) => money(v), true],
     ["Total miles", (x) => x.miles, (v) => num(v), true],
-    ["Gross per week", (x) => x.gross / (week === "all" ? 2 : 1), (v) => money(v), true],
-    ["Miles per week", (x) => x.miles / (week === "all" ? 2 : 1), (v) => num(v), true],
+    ["Gross per week", (x) => x.gross / Math.max(1, new Set(x.S.map((s) => s.WeekStart)).size), (v) => money(v), true],
+    ["Miles per week", (x) => x.miles / Math.max(1, new Set(x.S.map((s) => s.WeekStart)).size), (v) => num(v), true],
     ["RPM (all miles)", (x) => x.rpm, pm, true],
     ["Loaded RPM", (x) => x.lrpm, pm, true],
     ["CPM (operating)", (x) => x.cpm, pm, false],
@@ -393,7 +443,8 @@ function render() {
     const fv = fmt ? fmt(fn(fleet, null) ?? 0) : "";
     h += `<tr><td>${l}</td>${vals.map((v, i) => {
       let cls = "";
-      if (hib != null && vals[0] !== vals[1]) { const best = hib ? Math.max(...vals) : Math.min(...vals); cls = v === best ? "win" : "lose"; }
+      const fin = vals.filter(ok);
+      if (hib != null && ok(v) && fin.length > 1 && new Set(fin).size > 1) { const best = hib ? Math.max(...fin) : Math.min(...fin), worst = hib ? Math.min(...fin) : Math.max(...fin); cls = v === best ? "win" : v === worst ? "lose" : ""; }
       return `<td class="${cls}">${fmt ? fmt(v) : v}</td>`;
     }).join("")}<td>${l === "Driver" ? "" : fv}</td></tr>`;
   });
@@ -412,9 +463,9 @@ function render() {
 
   // MPG
   legend("#mpgLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
-  const mpgGroups = (week === "all" ? [...WEEKS, "all"] : [week]).map((w) => ({ label: w === "all" ? "2-week total" : WLABEL[w], bars: TRUCKS.map((t) => {
+  const mpgGroups = (week === "all" ? [...WEEKS, "all"] : [week]).map((w) => ({ label: w === "all" ? `${WEEKS.length}-week total` : WLABEL[w], bars: TRUCKS.map((t) => {
     const x = w === "all" ? byT[t] : tw(t, w);
-    return { value: x.mpg, color: TC[t], tip: `<b>Truck ${t} · ${w === "all" ? "2 weeks" : WLABEL[w]}</b><br>${x.mpg.toFixed(2)} MPG<br>${num(x.miles)} mi ÷ ${num(x.dGal, 1)} gal diesel<br>Fuel+DEF ${pm(x.fpm)}/mi · ${pm(x.dCost / x.dGal)}/gal` };
+    return { value: x.mpg, color: TC[t], tip: `<b>Truck ${t} · ${w === "all" ? WEEKS.length + " weeks" : WLABEL[w]}</b><br>${x.mpg.toFixed(2)} MPG<br>${num(x.miles)} mi ÷ ${num(x.dGal, 1)} gal diesel<br>Fuel+DEF ${pm(x.fpm)}/mi · ${pm(x.dCost / x.dGal)}/gal` };
   }) }));
   vbars("#mpgChart", mpgGroups, { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 MPG target", max: 9 });
 
@@ -492,12 +543,197 @@ const RECS = [
 document.getElementById("recs").innerHTML = RECS.map(([t, p]) => `<div class="rec"><b>${t}</b><p>${p}</p></div>`).join("");
 
 // ---- controls ----
-document.querySelectorAll("#weekSeg button").forEach((b) => b.addEventListener("click", () => {
-  week = b.dataset.week; document.querySelectorAll("#weekSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); }));
+$("#weekSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
+  week = b.dataset.week; document.querySelectorAll("#weekSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); });
 document.querySelectorAll("#themeSeg button").forEach((b) => b.addEventListener("click", () => {
   const t = b.dataset.theme; if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
   document.querySelectorAll("#themeSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); }));
-render();
+// ---- automatic red flags (recomputed from whatever data is loaded) ----
+function autoFlags() {
+  const out = [], save = week;
+  const fleetAll = (() => { week = "all"; const r = m(); week = save; return r; })();
+  const SEV = { critical: 0, serious: 1, warning: 2 };
+  D.settlements.forEach((s) => {
+    const L = D.loads.filter((l) => l.SettlementID === s.SettlementID), X = D.deductions.filter((d) => d.SettlementID === s.SettlementID);
+    const R = D.reimbursements.filter((r) => r.SettlementID === s.SettlementID), sum = (a, k) => a.reduce((t, r) => t + (+r[k] || 0), 0);
+    const calc = s.Gross - s.DriverPay + sum(R, "Amount") - sum(X, "Amount");
+    if (Math.abs(calc - s.NetPay) > 0.05 || Math.abs(sum(L, "Gross") - s.Gross) > 0.05)
+      out.push(["critical", `${s.SettlementID} doesn't add up`, `Gross − driver pay + reimbursements − deductions = ${money(calc, 2)}, statement says net pay ${money(s.NetPay, 2)}. Loads total ${money(sum(L, "Gross"), 2)} vs gross ${money(s.Gross, 2)}.`, money(calc - s.NetPay, 2), 1e9]);
+    const ot = X.filter((d) => !d.IsOperating);
+    if (ot.length) out.push(["serious", `Truck ${s.TruckID}, ${weekLabel(s.WeekStart)}: ${money(sum(ot, "Amount"), 2)} in one-time charges`, ot.map((d) => `${d.Description} (${money(d.Amount, 2)})`).join("; ") + ". Ask for receipts and check they're for your truck.", money(sum(ot, "Amount")), sum(ot, "Amount")]);
+  });
+  TRUCKS.forEach((t) => {
+    const all = (() => { week = "all"; const r = m(t); week = save; return r; })();
+    if (all.dGal > 0 && all.mpg < 6.5) out.push(["serious", `Truck ${t} averages ${all.mpg.toFixed(2)} MPG (target 6.5)`, `${num(all.miles)} mi on ${num(all.dGal, 1)} gal diesel across ${new Set(all.S.map((s) => s.WeekStart)).size} week(s). At 6.5 MPG it would have used ${num(all.dGal - all.miles / 6.5, 0)} fewer gallons.`, "~" + money((all.dGal - all.miles / 6.5) * (all.dCost / all.dGal)), (all.dGal - all.miles / 6.5) * (all.dCost / all.dGal)]);
+    if (all.dh > 0.15) out.push(["serious", `Truck ${t} deadhead ${pct(all.dh)} (limit 15%)`, `${num(all.empty)} empty of ${num(all.miles)} total miles. Excess empty miles above 15%: ${num(all.empty - 0.15 * all.miles)}.`, "~" + money((all.empty - 0.15 * all.miles) * fleetAll.cpm), (all.empty - 0.15 * all.miles) * fleetAll.cpm]);
+    WEEKS.forEach((w) => {
+      week = w; const x = m(t); week = save;
+      if (!x.L.length) return;
+      if (x.profit < 0) out.push(["critical", `Truck ${t} lost money in ${WLABEL[w]}`, `RPM ${pm(x.rpm)} vs CPM ${pm(x.cpm)} on ${num(x.miles)} miles (fuel ${money(x.cat.Fuel || 0)}, tolls ${money(x.tolls)}, maintenance ${money(x.maint)}).`, money(x.profit), -x.profit]);
+      if (x.maint / x.miles > 0.1) out.push(["warning", `Truck ${t} maintenance ${pm(x.maint / x.miles)}/mi in ${WLABEL[w]}`, X_desc(x), money(x.maint, 2), x.maint]);
+    });
+  });
+  const cheap = D.loads.filter((l) => l.RPM < fleetAll.cpm);
+  if (cheap.length) out.push(["warning", `${cheap.length} load(s) paid less than your ${pm(fleetAll.cpm)}/mi cost`, cheap.map((l) => `${l.TruckID}: ${l.Pickup} → ${l.Delivery} ${pm(l.RPM)}/mi`).join("; ") + ".", money(cheap.reduce((t, l) => t + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)), cheap.reduce((t, l) => t + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)]);
+  out.sort((a, b) => SEV[a[0]] - SEV[b[0]] || b[4] - a[4]);
+  $("#autoFlags").innerHTML = out.length ? out.map(([sev, t, b, a]) => `<li class="flag ${sev}"><div class="icon" aria-hidden="true">${sev === "warning" ? "!" : "▲"}</div>
+    <div><div class="sev">${sev}</div><div class="title">${esc(t)}</div><div class="body">${esc(b)}</div></div><div class="amt">${a}</div></li>`).join("") : `<li class="muted">No automatic flags. 👍</li>`;
+}
+function X_desc(x) { return x.X.filter((d) => d.Category === "Maintenance").map((d) => `${d.Description} ${money(d.Amount, 2)}`).join("; "); }
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---- statements table ----
+let canWrite = false, pendingDelete = null;
+function stmtTable() {
+  const rows = D.settlements.slice().sort((a, b) => b.WeekStart.localeCompare(a.WeekStart) || a.TruckID.localeCompare(b.TruckID));
+  $("#stmtTable").innerHTML = `<thead><tr><th class="left">Statement</th><th>Truck</th><th class="left">Week</th><th>Loads</th><th>Gross</th><th>Deductions</th><th>Net pay</th><th></th></tr></thead><tbody>` +
+    rows.map((s) => `<tr><td class="left">${esc(s.SettlementID)}</td><td>${esc(s.TruckID)}</td><td class="left">${WLABEL[s.WeekStart] || s.WeekStart}</td><td>${D.loads.filter((l) => l.SettlementID === s.SettlementID).length}</td>
+      <td>${money(s.Gross, 2)}</td><td>${money(s.Deductions, 2)}</td><td>${money(s.NetPay, 2)}</td>
+      <td>${canWrite && db ? `<button class="btn danger" data-del="${esc(s.SettlementID)}">${pendingDelete === s.SettlementID ? "Confirm delete" : "Delete"}</button>` : ""}</td></tr>`).join("") + "</tbody>";
+}
+$("#stmtTable").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-del]"); if (!b) return;
+  const id = b.dataset.del;
+  if (pendingDelete !== id) { pendingDelete = id; stmtTable(); return; }
+  pendingDelete = null; b.disabled = true;
+  try { await db.doc("settlements/" + id).delete(); } catch (err) { setStatus("err", "Delete failed: " + (err.message || err.code)); }
+});
+
+const _render = render;
+render = function () { _render(); if (D) { autoFlags(); stmtTable(); } };
+
+// ---- database ----
+let db = null, sample = null;
+function setStatus(kind, msg) { const s = $("#dbStatus"); s.className = "status " + kind; s.lastElementChild.textContent = msg; }
+function fromDocs(docs) {
+  const d = { trucks: [], settlements: [], loads: [], fuel: [], deductions: [], reimbursements: [] }, tr = {};
+  docs.slice().sort((a, b) => (a.settlement?.WeekStart || "").localeCompare(b.settlement?.WeekStart || "")).forEach((x) => {
+    if (!x || !x.settlement) return;
+    d.settlements.push(x.settlement);
+    if (x.truck) tr[x.truck.TruckID] = x.truck; // latest week wins
+    ["loads", "fuel", "deductions", "reimbursements"].forEach((k) => (x[k] || []).forEach((r) => d[k].push(r)));
+  });
+  d.trucks = Object.values(tr);
+  return d;
+}
+function showOffline(msg) { if (!D) { setData(window.FLEET); render(); } setStatus("err", msg); $("#manage").style.display = "none"; }
+
+setData(window.FLEET); render(); // instant first paint from the bundled copy
+(async () => {
+  try { db = await window.claude?.use?.("db"); } catch { db = null; }
+  if (!db) return showOffline("Offline copy (database not available in this view)");
+  try { const user = await window.claude.use("user"); const c = user ? await user.can("data.write") : null; canWrite = c !== false; } catch { canWrite = true; }
+  try { sample = await window.claude.use("sample"); } catch { sample = null; }
+  if (!canWrite) $("#drop").style.display = "none";
+  let timer = setTimeout(() => setStatus("err", "Database not reachable yet — showing bundled copy"), 10000);
+  db.collection("settlements").onSnapshot((snap) => {
+    if (snap.metadata.fromCache && snap.empty) return;
+    if (!snap.metadata.fromCache) { clearTimeout(timer); }
+    setData(fromDocs(snap.docs.map((x) => x.data())));
+    render();
+    setStatus(snap.metadata.fromCache ? "" : "live", `Live database · ${snap.size} statement${snap.size === 1 ? "" : "s"}${snap.metadata.hasPendingWrites ? " · saving…" : ""}`);
+    if (snap.empty) $("#subtitle").textContent = "Database is empty — upload a settlement PDF below.";
+  }, (err) => { clearTimeout(timer); setStatus("err", "Database error: " + err.code + " — showing last loaded data"); });
+})();
+
+// ---- PDF upload → Claude → preview → save ----
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
+async function pdfToText(file) {
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise, lines = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const items = (await (await pdf.getPage(p)).getTextContent()).items.filter((i) => i.str.trim()).map((i) => ({ s: i.str, x: i.transform[4], y: i.transform[5] }));
+    const rows = new Map(); items.forEach((i) => { const k = Math.round(i.y / 3) * 3; (rows.get(k) || rows.set(k, []).get(k)).push(i); });
+    [...rows.keys()].sort((a, b) => b - a).forEach((k) => lines.push(rows.get(k).sort((a, b) => a.x - b.x).map((i) => i.s).join(" | ")));
+    lines.push("--- page break ---");
+  }
+  return lines.join("\n");
+}
+const CATEGORY_HELP = `Category must be one of: "Company Fee"; "Fixed Weekly" (trailer rental, ELD, IFTA, insurance); "Fuel"; "Tolls" (toll transactions and PrePass); "Maintenance"; "Driver Bonus"; "Registration" (truck registration, even if typed Safety); "Safety / Driver Travel" (air tickets, Uber, hotels, other Safety lines); "Cash Advance"; "Other".`;
+function prompt(text) {
+  return `You convert a trucking "Truck Owner Settlement" statement (text extracted from a PDF; table cells are separated by " | ", and some cells wrap onto the next line) into JSON.
+Return ONLY a JSON object with exactly these keys:
+{"SettlementID": "BL-…", "TruckID": "unit number digits only, e.g. 777", "Driver": "driver full name", "WeekStart": "YYYY-MM-DD (Period Start)", "WeekEnd": "YYYY-MM-DD", "CheckDate": "YYYY-MM-DD", "Trips": number,
+ "Gross": number (Total Gross), "DriverPay": positive number, "Reimbursements": number (sum of Reimbursement lines, 0 if none), "Deductions": number (deductions total), "NetPay": number,
+ "loads": [{"LoadID": "", "Pickup": "City, ST", "Delivery": "City, ST", "PickupDate": "YYYY-MM-DD", "DeliveryDate": "YYYY-MM-DD", "LoadedMiles": n, "EmptyMiles": n, "TotalMiles": n, "Gross": n, "DriverPay": n}],
+ "fuel": [{"Date": "YYYY-MM-DD", "Product": "Diesel" or "DEF", "City": "", "State": "ST", "Gallons": n, "RetailAmount": n, "InvoiceAmount": n}],
+ "deductions": [{"Category": "…", "StatementType": "Type column as printed", "Description": "short description incl. names/dates/invoice ids", "Amount": n}],
+ "reimbursements": [{"Description": "", "Amount": n}]}
+${CATEGORY_HELP}
+Every deduction line on the statement must appear exactly once (including Fuel and Toll totals). Numbers are plain numbers without $ or commas. Do not invent values.
+
+STATEMENT TEXT:
+${text}`;
+}
+function normalize(x) {
+  const id = String(x.SettlementID).trim(), T = String(x.TruckID).replace(/\D/g, ""), wk = x.WeekStart, n = (v) => +(+v || 0).toFixed(2);
+  const NONOP = ["Registration", "Safety / Driver Travel", "Cash Advance", "Other"];
+  const loads = (x.loads || []).map((l) => { const tm = n(l.TotalMiles) || n(l.LoadedMiles) + n(l.EmptyMiles);
+    return { LoadID: String(l.LoadID), SettlementID: id, TruckID: T, WeekStart: wk, Pickup: l.Pickup, Delivery: l.Delivery, PickupDate: l.PickupDate, DeliveryDate: l.DeliveryDate,
+      LoadedMiles: n(l.LoadedMiles), EmptyMiles: n(l.EmptyMiles), TotalMiles: tm, Gross: n(l.Gross), DriverPay: n(l.DriverPay),
+      RPM: +(n(l.Gross) / tm).toFixed(3), LoadedRPM: +(n(l.Gross) / n(l.LoadedMiles)).toFixed(3), DeadheadPct: +(n(l.EmptyMiles) / tm).toFixed(4) }; });
+  const fuel = (x.fuel || []).map((f, i) => ({ FuelID: `${id}-F${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Date: f.Date, Product: /def/i.test(f.Product) ? "DEF" : "Diesel", City: f.City, State: f.State,
+    Gallons: n(f.Gallons), RetailAmount: n(f.RetailAmount), InvoiceAmount: n(f.InvoiceAmount), Discount: n(n(f.RetailAmount) - n(f.InvoiceAmount)), PricePerGal: n(f.Gallons) >= 1 ? +(n(f.InvoiceAmount) / n(f.Gallons)).toFixed(3) : null }));
+  const deductions = (x.deductions || []).map((d, i) => ({ DeductionID: `${id}-D${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Category: d.Category, StatementType: d.StatementType, Description: d.Description, Amount: n(d.Amount), IsOperating: !NONOP.includes(d.Category) }));
+  const reimbursements = (x.reimbursements || []).map((r, i) => ({ ReimbursementID: `${id}-R${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Description: r.Description, Amount: n(r.Amount) }));
+  const rates = loads.map((l) => l.DriverPay / l.TotalMiles).filter(ok).sort((a, b) => a - b);
+  return { settlement: { SettlementID: id, TruckID: T, WeekStart: wk, WeekEnd: x.WeekEnd, CheckDate: x.CheckDate, Trips: +x.Trips || loads.length, Gross: n(x.Gross), DriverPay: n(Math.abs(x.DriverPay)), Reimbursements: n(x.Reimbursements), Deductions: n(x.Deductions), NetPay: n(x.NetPay) },
+    truck: { TruckID: T, Driver: x.Driver, DriverRatePerMile: rates.length ? +rates[Math.floor(rates.length / 2)].toFixed(2) : null }, loads, fuel, deductions, reimbursements };
+}
+function checks(doc) {
+  const s = doc.settlement, sum = (a, k) => a.reduce((t, r) => t + r[k], 0), c = [];
+  const near = (a, b) => Math.abs(a - b) < 0.05;
+  c.push(["Loads add up to total gross", near(sum(doc.loads, "Gross"), s.Gross), `${money(sum(doc.loads, "Gross"), 2)} vs ${money(s.Gross, 2)}`]);
+  c.push(["Driver pay matches loads", near(sum(doc.loads, "DriverPay"), s.DriverPay), `${money(sum(doc.loads, "DriverPay"), 2)} vs ${money(s.DriverPay, 2)}`]);
+  c.push(["Deduction lines add up", near(sum(doc.deductions, "Amount"), s.Deductions), `${money(sum(doc.deductions, "Amount"), 2)} vs ${money(s.Deductions, 2)}`]);
+  c.push(["Reimbursements add up", near(sum(doc.reimbursements, "Amount"), s.Reimbursements), `${money(sum(doc.reimbursements, "Amount"), 2)} vs ${money(s.Reimbursements, 2)}`]);
+  const calc = s.Gross - s.DriverPay + s.Reimbursements - s.Deductions;
+  c.push(["Net pay = gross − driver pay + reimb. − deductions", near(calc, s.NetPay), `${money(calc, 2)} vs ${money(s.NetPay, 2)}`]);
+  const fd = sum(doc.deductions.filter((d) => d.Category === "Fuel"), "Amount");
+  if (doc.fuel.length) c.push(["Fuel purchases match fuel deduction", near(sum(doc.fuel, "InvoiceAmount"), fd), `${money(sum(doc.fuel, "InvoiceAmount"), 2)} vs ${money(fd, 2)}`]);
+  return c;
+}
+const pending = new Map();
+async function handleFiles(files) {
+  for (const file of files) {
+    const key = Math.random().toString(36).slice(2), box = document.createElement("div");
+    box.className = "preview"; box.id = "up-" + key; box.innerHTML = `<b>${esc(file.name)}</b> — reading PDF…`; $("#uploadArea").prepend(box);
+    try {
+      if (!window.pdfjsLib) throw new Error("PDF reader didn't load");
+      if (!sample) throw new Error("Claude isn't available in this view, so the PDF can't be read automatically");
+      const text = await pdfToText(file);
+      box.innerHTML = `<b>${esc(file.name)}</b> — Claude is reading the statement…`;
+      const raw = await sample.json(prompt(text), { modelTier: "default" });
+      const doc = normalize(raw), c = checks(doc), s = doc.settlement, exists = D.settlements.some((x) => x.SettlementID === s.SettlementID);
+      pending.set(key, doc);
+      box.innerHTML = `<b>${esc(file.name)}</b> → <b>${esc(s.SettlementID)}</b> · Truck ${esc(s.TruckID)} · ${esc(doc.truck.Driver)} · ${esc(s.WeekStart)} → ${esc(s.WeekEnd)}<br>
+        ${doc.loads.length} loads · ${num(doc.loads.reduce((t, l) => t + l.TotalMiles, 0), 1)} mi · gross ${money(s.Gross, 2)} · deductions ${money(s.Deductions, 2)} · net ${money(s.NetPay, 2)} · ${doc.fuel.length} fuel lines · ${doc.deductions.length} deduction lines
+        <ul style="margin:8px 0">${c.map(([l, pass, d]) => `<li><span class="${pass ? "ok" : "bad"}">${pass ? "✓" : "✗"}</span> ${l} <span class="muted">(${d})</span></li>`).join("")}</ul>
+        ${c.every((x) => x[1]) ? "" : `<p class="bad">Some totals don't match — the PDF may have been misread. Save only if you're sure, or try again.</p>`}
+        <button class="btn primary" data-save="${key}">${exists ? "Replace " + esc(s.SettlementID) + " in database" : "Save to database"}</button> <button class="btn" data-discard="${key}">Discard</button>`;
+    } catch (err) {
+      box.innerHTML = `<b>${esc(file.name)}</b> — <span class="bad">couldn't read it: ${esc(err.message || err.code || err)}</span>`;
+    }
+  }
+}
+$("#uploadArea").addEventListener("click", async (e) => {
+  const sv = e.target.closest("button[data-save]"), dc = e.target.closest("button[data-discard]");
+  if (dc) { pending.delete(dc.dataset.discard); dc.closest(".preview").remove(); return; }
+  if (!sv) return;
+  const doc = pending.get(sv.dataset.save); sv.disabled = true; sv.textContent = "Saving…";
+  try {
+    await db.doc("settlements/" + doc.settlement.SettlementID.replace(/[^A-Za-z0-9_\-.~:@+]/g, "-")).set(doc);
+    pending.delete(sv.dataset.save); sv.closest(".preview").innerHTML = `<span class="ok">✓ Saved ${esc(doc.settlement.SettlementID)}</span> — the dashboard has been updated.`;
+  } catch (err) {
+    sv.disabled = false; sv.textContent = "Retry save";
+    sv.insertAdjacentHTML("afterend", ` <span class="bad">${err.code === "invalid_argument" ? "You don't have permission to save here." : esc(err.message || err.code)}</span>`);
+  }
+});
+$("#pickBtn").addEventListener("click", () => $("#pdfInput").click());
+$("#pdfInput").addEventListener("change", (e) => { handleFiles([...e.target.files]); e.target.value = ""; });
+const drop = $("#drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); handleFiles([...e.dataTransfer.files].filter((f) => /pdf$/i.test(f.name) || f.type === "application/pdf")); });
 })();
 </script>
 </body>
