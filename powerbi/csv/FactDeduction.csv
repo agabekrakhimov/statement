@@ -42,3 +42,11 @@ BL-001051-D7,BL-001051,777,2026-10-19,Tolls,Tolls,PrePass,10.0,True
 BL-001051-D8,BL-001051,777,2026-10-19,Tolls,Toll,Toll transactions,59.15,True
 BL-001051-D9,BL-001051,777,2026-10-19,Maintenance,Maintenance,"#777 oil change, inv 0026140 (10/16/2026)",571.13,True
 BL-001051-D10,BL-001051,777,2026-10-19,Fuel,Fuel,Fuel card (invoice price),2736.59,True
+BL-001611-D1,BL-001611,555,2026-10-19,Maintenance,Other,Driver expense for diesel engine oil,56.78,True
+BL-001611-D2,BL-001611,555,2026-10-19,Fixed Weekly,Admin Fee,Weekly admin fee,100.0,True
+BL-001611-D3,BL-001611,555,2026-10-19,Fixed Weekly,Insurance,Weekly insurance,400.0,True
+BL-001611-D4,BL-001611,555,2026-10-19,Company Fee,Company Fee,Company fee 11% of gross,1463.0,True
+BL-001611-D5,BL-001611,555,2026-10-19,Fuel,Fuel,Fuel card (retail price),2790.74,True
+BL-001611-D6,BL-001611,555,2026-10-19,Tolls,Toll,Toll transactions,108.25,True
+BL-001611-D7,BL-001611,555,2026-10-19,Fixed Weekly,Other,Recurrent #4: plate fee,200.0,True
+BL-001611-D8,BL-001611,555,2026-10-19,Salary Adjustment,Salary Adjustments,Salary adjustments auto charge (unexplained),1382.49,False

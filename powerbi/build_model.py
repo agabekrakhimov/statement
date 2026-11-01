@@ -1,8 +1,8 @@
-"""Builds the Power BI / Fabric data model from the Oct-2026 Wenze settlements.
+"""Builds the Power BI / Fabric data model from the weekly owner settlements.
 
 Run:  python3 powerbi/build_model.py
 Outputs: powerbi/Fleet_Settlements_Oct2026.xlsx, powerbi/csv/*.csv, report/data.js
-Every number below was typed from the 4 PDFs (BL-001023, BL-001024, BL-001050, BL-001051).
+Every number below was typed from the PDFs (Wenze: BL-001023/-001024/-001050/-001051; VKL: BL-001611).
 """
 import csv, json, os
 from openpyxl import Workbook
@@ -15,6 +15,7 @@ ROOT = os.path.dirname(HERE)
 trucks = [
     {"TruckID": "7777", "Driver": "Robert Dockery", "DriverRatePerMile": 0.75},
     {"TruckID": "777", "Driver": "Damarion Charles Whitlock", "DriverRatePerMile": 0.70},
+    {"TruckID": "555", "Driver": "Lionel R Jones", "DriverRatePerMile": 0.73},
 ]
 
 settlements = [
@@ -27,7 +28,13 @@ settlements = [
          Trips=3, Gross=6900.00, DriverPay=1963.74, Reimbursements=2643.04, Deductions=6092.90, NetPay=1486.40),
     dict(SettlementID="BL-001051", TruckID="777", WeekStart="2026-10-19", WeekEnd="2026-10-25", CheckDate="2026-10-30",
          Trips=4, Gross=6900.00, DriverPay=1400.56, Reimbursements=0.00, Deductions=4994.87, NetPay=504.57),
+    dict(SettlementID="BL-001611", TruckID="555", WeekStart="2026-10-19", WeekEnd="2026-10-25", CheckDate="2026-10-28",
+         Trips=3, Gross=13300.00, DriverPay=3709.61, Reimbursements=0.00, Deductions=6501.26, NetPay=3089.13,
+         Carrier="VKL Trucking Inc", Owner="ODO Express LLC"),
 ]
+for _s in settlements:
+    _s.setdefault("Carrier", "Wenze Transport Services")
+    _s.setdefault("Owner", "Og'abek Rakhimov")
 
 # Load, PU, DEL, PU date, DEL date, loaded, empty, total, gross, driver pay
 _loads = {
@@ -52,6 +59,11 @@ _loads = {
         ("7000448271", "Kathleen, GA", "Hazleton, PA", "2026-10-21", "2026-10-23", 862.20, 170.00, 1032.20, 2600.00, 722.54),
         ("5498741", "Tunkhannock, PA", "Monroe, NJ", "2026-10-23", "2026-10-23", 176.60, 65.20, 241.80, 1500.00, 169.26),
         ("448536", "Chantilly, VA", "Hebron, KY", "2026-10-25", "2026-10-26", 165.00, 25.00, 190.00, 1900.00, 133.00),
+    ],
+    "BL-001611": [  # statement prints no pickup dates
+        ("5035389", "Danville, KY", "Woodbridge Township, NJ", None, "2026-10-16", 0.00, 0.00, 0.00, 300.00, 0.00),
+        ("9821846", "Luckey, OH", "Cheney, WA", None, "2026-10-22", 2046.82, 150.00, 2196.82, 7000.00, 1603.68),
+        ("2627175", "Spokane, WA", "Wilmington, OH", None, "2026-10-26", 2110.67, 1.16, 2111.83, 6000.00, 1541.64),
     ],
 }
 
@@ -89,6 +101,12 @@ _fuel = {
         ("2026-10-23", "Diesel", "Staunton", "VA", 115.32, 755.20, 665.58),
         ("2026-10-25", "DEF", "Hagerstown", "MD", 18.01, 91.64, 91.64),
         ("2026-10-25", "Diesel", "Hagerstown", "MD", 154.58, 1049.46, 940.96),
+    ],
+    "BL-001611": [  # VKL prints retail only, no dates
+        (None, "DEF", "Post Falls", "ID", 14.74, 61.75, 61.75),
+        (None, "Diesel", "Post Falls", "ID", 176.26, 1207.21, 1207.21),
+        (None, "Diesel", "Laurel", "MT", 112.40, 684.40, 684.40),
+        (None, "Diesel", "Aurora", "NE", 127.09, 837.38, 837.38),
     ],
 }
 
@@ -145,6 +163,16 @@ _ded = {
         ("Maintenance", "Maintenance", "#777 oil change, inv 0026140 (10/16/2026)", 571.13),
         ("Fuel", "Fuel", "Fuel card (invoice price)", 2736.59),
     ],
+    "BL-001611": [
+        ("Maintenance", "Other", "Driver expense for diesel engine oil", 56.78),
+        ("Fixed Weekly", "Admin Fee", "Weekly admin fee", 100.00),
+        ("Fixed Weekly", "Insurance", "Weekly insurance", 400.00),
+        ("Company Fee", "Company Fee", "Company fee 11% of gross", 1463.00),
+        ("Fuel", "Fuel", "Fuel card (retail price)", 2790.74),
+        ("Tolls", "Toll", "Toll transactions", 108.25),
+        ("Fixed Weekly", "Other", "Recurrent #4: plate fee", 200.00),
+        ("Salary Adjustment", "Salary Adjustments", "Salary adjustments auto charge (unexplained)", 1382.49),
+    ],
 }
 
 _reimb = {
@@ -160,7 +188,8 @@ for sid, rows in _loads.items():
     for r in rows:
         loads.append(dict(LoadID=r[0], SettlementID=sid, TruckID=s["TruckID"], WeekStart=s["WeekStart"], Pickup=r[1], Delivery=r[2],
                           PickupDate=r[3], DeliveryDate=r[4], LoadedMiles=r[5], EmptyMiles=r[6], TotalMiles=r[7], Gross=r[8], DriverPay=r[9],
-                          RPM=round(r[8] / r[7], 3), LoadedRPM=round(r[8] / r[5], 3), DeadheadPct=round(r[6] / r[7], 4)))
+                          RPM=round(r[8] / r[7], 3) if r[7] else None, LoadedRPM=round(r[8] / r[5], 3) if r[5] else None,
+                          DeadheadPct=round(r[6] / r[7], 4) if r[7] else None))
 for sid, rows in _fuel.items():
     s = s_by_id[sid]
     for i, r in enumerate(rows, 1):
@@ -172,7 +201,7 @@ for sid, rows in _ded.items():
     for i, r in enumerate(rows, 1):
         deds.append(dict(DeductionID=f"{sid}-D{i}", SettlementID=sid, TruckID=s["TruckID"], WeekStart=s["WeekStart"], Category=r[0],
                          StatementType=r[1], Description=r[2], Amount=r[3],
-                         IsOperating=r[0] not in ("Registration", "Safety / Driver Travel", "Cash Advance")))
+                         IsOperating=r[0] not in ("Registration", "Safety / Driver Travel", "Cash Advance", "Salary Adjustment", "Other")))
 for sid, rows in _reimb.items():
     s = s_by_id[sid]
     for i, r in enumerate(rows, 1):
@@ -183,7 +212,8 @@ for s in settlements:
     sid = s["SettlementID"]
     L = [l for l in loads if l["SettlementID"] == sid]
     assert round(sum(l["Gross"] for l in L), 2) == s["Gross"], sid
-    assert round(sum(l["DriverPay"] for l in L), 2) == s["DriverPay"], sid
+    if round(sum(l["DriverPay"] for l in L), 2) != s["DriverPay"]:
+        print(f"NOTE {sid}: driver pay charged {s['DriverPay']} != load payments {round(sum(l['DriverPay'] for l in L), 2)}")
     assert round(sum(d["Amount"] for d in deds if d["SettlementID"] == sid), 2) == s["Deductions"], sid
     assert round(sum(r["Amount"] for r in reimbs if r["SettlementID"] == sid), 2) == s["Reimbursements"], sid
     assert round(s["Gross"] - s["DriverPay"] + s["Reimbursements"] - s["Deductions"], 2) == s["NetPay"], sid
@@ -201,7 +231,7 @@ def metrics(filter_fn):
     loaded = sum(l["LoadedMiles"] for l in L)
     empty = sum(l["EmptyMiles"] for l in L)
     gross = sum(l["Gross"] for l in L)
-    dpay = sum(l["DriverPay"] for l in L)
+    dpay = sum(s["DriverPay"] for s in S)
     cat = {}
     for d in D:
         cat[d["Category"]] = round(cat.get(d["Category"], 0) + d["Amount"], 2)
@@ -231,7 +261,8 @@ out = {
     "fleet": metrics(lambda r: True),
     "byTruck": {t["TruckID"]: metrics(lambda r, t=t: r["TruckID"] == t["TruckID"]) for t in trucks},
     "byTruckWeek": {f'{t["TruckID"]}|{w}': metrics(lambda r, t=t, w=w: r["TruckID"] == t["TruckID"] and r["WeekStart"] == w)
-                    for t in trucks for w in weeks},
+                    for t in trucks for w in weeks
+                    if any(s["TruckID"] == t["TruckID"] and s["WeekStart"] == w for s in settlements)},
 }
 with open(os.path.join(ROOT, "report", "data.js"), "w") as fh:
     fh.write("// Generated by powerbi/build_model.py - do not edit by hand.\nwindow.FLEET = " + json.dumps(out) + ";\n")

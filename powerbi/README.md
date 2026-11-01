@@ -13,11 +13,11 @@ cleaned into a star schema so you can build the report in a few minutes.
 ## Tables
 
 - **DimTruck** – TruckID, Driver, DriverRatePerMile
-- **FactSettlement** – one row per statement: gross, driver pay, reimbursements, deductions, net pay
+- **FactSettlement** – one row per statement: carrier, owner, gross, driver pay, reimbursements, deductions, net pay
 - **FactLoad** – one row per load: lanes, dates, loaded/empty/total miles, gross, driver pay, RPM, deadhead %
 - **FactFuel** – one row per fuel/DEF purchase: gallons, retail, invoice, card discount, $/gal
 - **FactDeduction** – every deduction line, bucketed into `Category`
-  (Company Fee, Fixed Weekly, Fuel, Tolls, Maintenance, Driver Bonus, Registration,
+  (Company Fee, Fixed Weekly, Fuel, Tolls, Maintenance, Driver Bonus, Registration, Salary Adjustment, Other,
   Safety / Driver Travel, Cash Advance) with `IsOperating` = FALSE for one-time items
 - **FactReimbursement** – reimbursements credited back to you
 

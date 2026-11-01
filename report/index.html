@@ -104,6 +104,18 @@ details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px
 .preview { margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
 .preview .ok { color: var(--good-text); font-weight: 600; }
 .preview .bad { color: var(--critical-text); font-weight: 600; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 4px 0 14px; overflow-x: auto; }
+.tabs a { padding: 10px 14px; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 500; }
+.tabs a[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+.filterbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.panel { display: none; } .panel.active { display: block; }
+.weekhead { display: flex; align-items: center; justify-content: space-between; text-align: center; }
+.checklist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.checklist li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; align-items: center; }
+.checklist .st { font-weight: 650; }
+.delta { font-size: 12px; font-weight: 600; }
+.delta.up { color: var(--good-text); } .delta.down { color: var(--critical-text); }
+a { color: var(--s1); }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -112,12 +124,11 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 <div class="wrap">
   <header>
     <div>
-      <h1>Fleet Report — Trucks 777 &amp; 7777</h1>
+      <h1>Fleet Dashboard</h1>
       <p class="sub" id="subtitle">Loading…</p>
       <p class="status" id="dbStatus"><span class="dot"></span><span>Connecting to database…</span></p>
     </div>
     <div class="controls">
-      <div class="seg" role="group" aria-label="Week filter" id="weekSeg"></div>
       <div class="seg" role="group" aria-label="Theme" id="themeSeg">
         <button data-theme="auto" aria-pressed="true">Auto</button>
         <button data-theme="light" aria-pressed="false">Light</button>
@@ -126,114 +137,172 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     </div>
   </header>
 
-  <section class="grid kpis" id="kpis"></section>
+  <nav class="tabs" id="tabs" role="tablist">
+    <a href="#this-week" data-tab="this-week">This week</a>
+    <a href="#dashboard" data-tab="dashboard">Dashboard</a>
+    <a href="#trends" data-tab="trends">Week by week</a>
+    <a href="#loads" data-tab="loads">Loads &amp; fuel</a>
+    <a href="#statements" data-tab="statements">Statements</a>
+  </nav>
 
-  <section class="card full">
-    <h2>🚩 Automatic red flags</h2>
-    <p class="muted">Re-checked every time a statement is added: deadhead over 15%, MPG under 6.5, weeks that lost money, loads paying below cost per mile, maintenance over $0.10/mi, one-time charges, and statements that don't add up.</p>
-    <ul class="flags" id="autoFlags"></ul>
-  </section>
+  <div class="filterbar" id="filterbar">
+    <div class="seg" role="group" aria-label="Week filter" id="weekSeg"></div>
+    <div class="seg" role="group" aria-label="Carrier filter" id="carrierSeg"></div>
+  </div>
 
-  <section class="card full">
-    <h2>My review of the Oct 12–25 statements</h2>
-    <p class="muted">Written notes on BL-001023, -001024, -001050 and -001051, ranked by dollar impact.</p>
-    <details open><summary>Show / hide</summary><ul class="flags" id="flags"></ul></details>
-  </section>
+  <!-- ===================== THIS WEEK ===================== -->
+  <div class="panel" data-panel="this-week">
+    <section class="card full weekhead">
+      <button class="btn" id="prevWeek" aria-label="Previous week">‹</button>
+      <div><div class="muted" id="weekCaption">Week</div><h2 id="weekTitle" style="font-size:20px;margin:0">—</h2></div>
+      <button class="btn" id="nextWeek" aria-label="Next week">›</button>
+    </section>
 
-  <section class="card full">
-    <h2>Truck vs truck scorecard</h2>
-    <p class="muted"><span class="win">Green</span> = better truck on that line, <span class="lose">red</span> = worse. Operating = excludes one-time registration/travel charges and reimbursements.</p>
-    <div class="tablewrap"><table id="scorecard"></table></div>
-  </section>
+    <section class="grid two">
+      <div class="card">
+        <h2>Statements for this week</h2>
+        <p class="muted">Every truck that ran recently should have one. Missing ones are listed so nothing slips.</p>
+        <ul class="checklist" id="checklist"></ul>
+      </div>
+      <div class="card">
+        <h2>Add this week's statements</h2>
+        <p class="muted">Drop all of this week's settlement PDFs at once. Each is read, checked, and waits for you to save.</p>
+        <div class="drop" id="drop">
+          <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+          <button class="btn primary" id="pickBtn">Upload settlement PDFs</button>
+          <div class="muted" style="margin-top:6px">or drop PDFs here · datatruck.io "Truck Owner Settlement" (Wenze, VKL, …)</div>
+        </div>
+        <div id="saveAllBar" style="display:none;margin-top:10px"><button class="btn primary" id="saveAll">Save all that passed checks</button></div>
+        <div id="uploadArea"></div>
+      </div>
+    </section>
 
-  <section class="grid two">
-    <div class="card">
-      <h2>Where each $1 of gross goes</h2>
-      <p class="muted">Operating costs as % of gross revenue, per truck. Whatever is left is operating profit.</p>
-      <div class="legend" id="pctLegend"></div>
-      <div id="pctChart"></div>
-    </div>
-    <div class="card">
-      <h2>Revenue per mile vs cost per mile</h2>
-      <p class="muted">RPM above CPM = the truck made money that week. CPM here is operating cost ÷ total miles (= breakeven RPM).</p>
-      <div class="legend" id="rpmLegend"></div>
-      <div id="rpmChart"></div>
-    </div>
-  </section>
+    <section class="grid kpis" id="weekKpis"></section>
 
-  <section class="grid two">
-    <div class="card">
-      <h2>Fuel economy (MPG) &amp; fuel cost per mile</h2>
-      <p class="muted">Diesel gallons only (DEF excluded). Red dashed line = 6.5 MPG target. Weekly MPG swings because a fill-up late in a week fuels next week's miles — trust the 2-week number.</p>
-      <div class="legend" id="mpgLegend"></div>
-      <div id="mpgChart"></div>
-    </div>
-    <div class="card">
-      <h2>Gross revenue by week</h2>
-      <p class="muted">Which truck is bringing in less money — and how many miles it took.</p>
-      <div class="legend" id="grossLegend"></div>
-      <div id="grossChart"></div>
-    </div>
-  </section>
+    <section class="card full">
+      <h2>🚩 This week's red flags</h2>
+      <ul class="flags" id="weekFlags"></ul>
+    </section>
+  </div>
 
-  <section class="grid two">
-    <div class="card">
-      <h2>Deadhead % by load</h2>
-      <p class="muted">Empty miles ÷ total miles. Red dashed line = 15% threshold.</p>
-      <div class="legend" id="dhLegend"></div>
-      <div id="dhChart"></div>
-    </div>
-    <div class="card">
-      <h2>Rate per mile by load</h2>
-      <p class="muted">Gross ÷ total miles (incl. deadhead). Red dashed line = fleet operating CPM (breakeven) — loads below it lose money.</p>
-      <div class="legend" id="lrLegend"></div>
-      <div id="lrChart"></div>
-    </div>
-  </section>
+  <!-- ===================== DASHBOARD ===================== -->
+  <div class="panel" data-panel="dashboard">
+    <section class="grid kpis" id="kpis"></section>
 
-  <section class="grid two">
-    <div class="card">
-      <h2>Maintenance &amp; tolls per mile</h2>
-      <p class="muted">Normalised by miles so a truck that ran more isn't penalised.</p>
-      <div class="legend" id="mtLegend"></div>
-      <div id="mtChart"></div>
-    </div>
-    <div class="card">
-      <h2>Non-operating items (charged / credited)</h2>
-      <p class="muted">Old or one-off charges that hit these two weeks. These are what wiped out the Oct 12–18 check for 7777 ($8.08 net).</p>
+    <section class="card full">
+      <h2>🚩 Red flags</h2>
+      <p class="muted">Checked automatically on every statement: totals that don't add up, driver pay that doesn't match the loads, one-time and unexplained charges, losing weeks, MPG under 6.5, deadhead over 15%, loads below cost per mile, maintenance over $0.10/mi, missing statements.</p>
+      <ul class="flags" id="autoFlags"></ul>
+    </section>
+
+    <section class="card full">
+      <h2>Truck vs truck</h2>
+      <p class="muted"><span class="win">Green</span> = best truck on that line, <span class="lose">red</span> = worst. Operating = excludes one-time charges and reimbursements.</p>
+      <div class="tablewrap"><table id="scorecard"></table></div>
+    </section>
+
+    <section class="grid two">
+      <div class="card">
+        <h2>Where each $1 of gross goes</h2>
+        <p class="muted">Operating costs as % of gross revenue. Whatever is left is operating profit.</p>
+        <div class="legend" id="pctLegend"></div>
+        <div id="pctChart"></div>
+      </div>
+      <div class="card">
+        <h2>Fuel economy (MPG)</h2>
+        <p class="muted">Diesel only. Red line = 6.5 MPG target. Single weeks swing with fill-up timing — trust the total.</p>
+        <div class="legend" id="mpgLegend"></div>
+        <div id="mpgChart"></div>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="card">
+        <h2>Maintenance, tolls &amp; fuel per mile</h2>
+        <p class="muted">Normalised by miles so a truck that ran more isn't penalised.</p>
+        <div class="legend" id="mtLegend"></div>
+        <div id="mtChart"></div>
+      </div>
+      <div class="card">
+        <h2>Carrier vs carrier</h2>
+        <p class="muted">What each carrier charges you and what you keep. Fixed fees = insurance, trailer, ELD, IFTA, admin, plates per truck-week.</p>
+        <div class="tablewrap"><table id="carrierTable"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== TRENDS ===================== -->
+  <div class="panel" data-panel="trends">
+    <section class="card full">
+      <h2>Week by week</h2>
+      <p class="muted">One row per week. Arrows compare with the week before.</p>
+      <div class="tablewrap"><table id="trendTable"></table></div>
+    </section>
+    <section class="grid two">
+      <div class="card">
+        <h2>Gross revenue by week</h2>
+        <div class="legend" id="grossLegend"></div>
+        <div id="grossChart"></div>
+      </div>
+      <div class="card">
+        <h2>Revenue per mile vs cost per mile</h2>
+        <p class="muted">RPM above CPM = the truck made money that week.</p>
+        <div class="legend" id="rpmLegend"></div>
+        <div id="rpmChart"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== LOADS ===================== -->
+  <div class="panel" data-panel="loads">
+    <section class="grid two">
+      <div class="card">
+        <h2>Deadhead % by load</h2>
+        <p class="muted">Empty ÷ total miles. Red line = 15%.</p>
+        <div class="legend" id="dhLegend"></div>
+        <div id="dhChart"></div>
+      </div>
+      <div class="card">
+        <h2>Rate per mile by load</h2>
+        <p class="muted">Gross ÷ total miles. Red line = operating cost per mile — loads below it lose money.</p>
+        <div class="legend" id="lrLegend"></div>
+        <div id="lrChart"></div>
+      </div>
+    </section>
+    <section class="card full">
+      <h2>Every load</h2>
+      <div class="tablewrap"><table id="loadsTable"></table></div>
+    </section>
+    <section class="card full">
+      <h2>Fuel stops</h2>
+      <p class="muted">Card discount = retail − charged. Some carriers only print retail; then discount shows $0.</p>
+      <div class="tablewrap"><table id="fuelTable"></table></div>
+    </section>
+  </div>
+
+  <!-- ===================== STATEMENTS ===================== -->
+  <div class="panel" data-panel="statements">
+    <section class="card full" id="manage">
+      <h2>Statements in the database</h2>
+      <p class="muted">To add new ones, use the <a href="#this-week">This week</a> tab.</p>
+      <div class="tablewrap"><table id="stmtTable"></table></div>
+    </section>
+    <section class="card full">
+      <h2>One-time &amp; unexplained items</h2>
+      <p class="muted">Charges and credits that aren't normal running costs — registrations, driver travel, salary adjustments, advances, reimbursements.</p>
       <div class="tablewrap"><table id="oneTime"></table></div>
-    </div>
-  </section>
+    </section>
+    <section class="card full">
+      <h2>My review of the Oct 12–25 Wenze statements</h2>
+      <details><summary>Show notes</summary><ul class="flags" id="flags"></ul></details>
+    </section>
+    <section class="card full">
+      <h2>What to track and why</h2>
+      <div class="recs" id="recs"></div>
+    </section>
+  </div>
 
-  <section class="card full">
-    <h2>Every load</h2>
-    <div class="tablewrap"><table id="loadsTable"></table></div>
-  </section>
-
-  <section class="card full">
-    <h2>Fuel stops</h2>
-    <p class="muted">Card discount = retail − invoice. Price/gal is what you were actually charged.</p>
-    <div class="tablewrap"><table id="fuelTable"></table></div>
-  </section>
-
-  <section class="card full">
-    <h2>What I'd add if this were my fleet — and why</h2>
-    <div class="recs" id="recs"></div>
-  </section>
-
-  <section class="card full" id="manage">
-    <h2>Statements in the database</h2>
-    <p class="muted">Upload a new weekly settlement PDF: it's read in your browser, Claude turns it into rows, you check the totals, then save. Everyone you share this page with sees the update.</p>
-    <div class="tablewrap"><table id="stmtTable"></table></div>
-    <div class="drop" id="drop">
-      <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
-      <button class="btn primary" id="pickBtn">Upload settlement PDF</button>
-      <div class="muted" style="margin-top:6px">or drop PDFs here · Wenze / datatruck.io "Truck Owner Settlement" format</div>
-    </div>
-    <div id="uploadArea"></div>
-  </section>
-
-  <footer>Built from the four PDF settlements. Data model + Power BI/Fabric files are in <code>powerbi/</code>. Regenerate with <code>python3 powerbi/build_model.py</code>.</footer>
+  <footer>Data model + Power BI/Fabric files are in <code>powerbi/</code> of the repository.</footer>
 </div>
 
 <script src="data.js"></script>
@@ -241,7 +310,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 <script>
 (() => {
 let D = null, TRUCKS = [], TC = {}, DRIVER = {}, RATE = {}, WEEKS = [], WLABEL = {};
-let week = "all";
+let week = "all", carrier = "all", curWeek = null, CARRIERS = [];
 const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s7)", "var(--s5)", "var(--s4)", "var(--s6)", "var(--s8)"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function weekLabel(ws) {
@@ -251,18 +320,25 @@ function weekLabel(ws) {
 function setData(d) {
   D = d;
   // trucks: stable colour by sorted id so a truck keeps its colour as data grows
-  const ids = [...new Set(d.settlements.map((s) => s.TruckID))].sort((a, b) => b.length - a.length || a.localeCompare(b));
+  const first = {}; d.settlements.forEach((s) => { if (!first[s.TruckID] || s.WeekStart < first[s.TruckID]) first[s.TruckID] = s.WeekStart; });
+  const ids = Object.keys(first).sort((a, b) => first[a].localeCompare(first[b]) || b.length - a.length || a.localeCompare(b));
   TRUCKS = ids; TC = {}; DRIVER = {}; RATE = {};
   ids.forEach((t, i) => (TC[t] = SLOTS[i % SLOTS.length]));
-  d.trucks.forEach((t) => { DRIVER[t.TruckID] = (t.Driver || "").split(" ")[0]; RATE[t.TruckID] = t.DriverRatePerMile; });
+  d.trucks.forEach((t) => { DRIVER[t.TruckID] = (t.Driver || "").split(" ")[0].toLowerCase().replace(/^./, (c) => c.toUpperCase()); RATE[t.TruckID] = t.DriverRatePerMile; });
+  d.settlements.forEach((s) => { if (!s.Carrier) s.Carrier = "Wenze Transport Services"; });
+  CARRIERS = [...new Set(d.settlements.map((s) => s.Carrier))].sort();
+  if (carrier !== "all" && !CARRIERS.includes(carrier)) carrier = "all";
+  $("#carrierSeg").style.display = CARRIERS.length > 1 ? "" : "none";
+  $("#carrierSeg").innerHTML = [["all", "All carriers"], ...CARRIERS.map((c) => [c, c.replace(/\b(INC|LLC|Services|Transport)\b\.?/gi, "").trim()])]
+    .map(([k, l]) => `<button data-carrier="${esc(k)}" aria-pressed="${k === carrier}">${esc(l)}</button>`).join("");
   WEEKS = [...new Set(d.settlements.map((s) => s.WeekStart))].sort();
+  if (!curWeek || !WEEKS.includes(curWeek)) curWeek = WEEKS[WEEKS.length - 1] || null;
   WLABEL = Object.fromEntries(WEEKS.map((w) => [w, weekLabel(w)]));
   if (week !== "all" && !WEEKS.includes(week)) week = "all";
-  $("#weekSeg").innerHTML = [["all", WEEKS.length === 2 ? "Both weeks" : `All ${WEEKS.length} weeks`], ...WEEKS.map((w) => [w, WLABEL[w]])]
+  $("#weekSeg").innerHTML = [["all", `All ${WEEKS.length} weeks`], ...WEEKS.slice(-8).map((w) => [w, WLABEL[w]])]
     .map(([k, l]) => `<button data-week="${k}" aria-pressed="${k === week}">${l}</button>`).join("");
   const ids2 = d.settlements.map((s) => s.SettlementID).sort();
-  $("#subtitle").textContent = WEEKS.length ? `${d.settlements.length} settlements (${ids2[0]} … ${ids2[ids2.length - 1]}) · ${WLABEL[WEEKS[0]]}${WEEKS.length > 1 ? " → " + WLABEL[WEEKS[WEEKS.length - 1]] : ""}, ${WEEKS[WEEKS.length - 1].slice(0, 4)}` : "No statements yet — upload one below.";
-  document.title = `Fleet Report · ${TRUCKS.map((t) => "Truck " + t).join(", ")}`;
+  $("#subtitle").textContent = WEEKS.length ? `${TRUCKS.length} truck${TRUCKS.length > 1 ? "s" : ""} (${TRUCKS.join(", ")}) · ${CARRIERS.length} carrier${CARRIERS.length > 1 ? "s" : ""} · ${d.settlements.length} statements · ${WLABEL[WEEKS[0]]} → ${WLABEL[WEEKS[WEEKS.length - 1]]}, ${WEEKS[WEEKS.length - 1].slice(0, 4)}` : "No statements yet — add one on the This week tab.";
 }
 
 const $ = (s) => document.querySelector(s);
@@ -273,11 +349,13 @@ const pct = (v, d = 1) => !ok(v) ? "—" : (v * 100).toFixed(d) + "%";
 const num = (v, d = 0) => !ok(v) ? "—" : v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
 
 // ---- metrics for the current filter (recomputed client-side from facts) ----
+function visTrucks() { return carrier === "all" ? TRUCKS : TRUCKS.filter((t) => D.settlements.some((s) => s.TruckID === t && s.Carrier === carrier)); }
 function m(truck) {
-  const f = (r) => (!truck || r.TruckID === truck) && (week === "all" || r.WeekStart === week);
+  const sids = carrier === "all" ? null : new Set(D.settlements.filter((s) => s.Carrier === carrier).map((s) => s.SettlementID));
+  const f = (r) => (!truck || r.TruckID === truck) && (week === "all" || r.WeekStart === week) && (!sids || sids.has(r.SettlementID));
   const L = D.loads.filter(f), F = D.fuel.filter(f), X = D.deductions.filter(f), R = D.reimbursements.filter(f), S = D.settlements.filter(f);
   const sum = (a, k) => a.reduce((t, r) => t + r[k], 0);
-  const miles = sum(L, "TotalMiles"), loaded = sum(L, "LoadedMiles"), empty = sum(L, "EmptyMiles"), gross = sum(L, "Gross"), dpay = sum(L, "DriverPay");
+  const miles = sum(L, "TotalMiles"), loaded = sum(L, "LoadedMiles"), empty = sum(L, "EmptyMiles"), gross = sum(L, "Gross"), dpay = sum(S, "DriverPay");
   const cat = {}; X.forEach((d) => (cat[d.Category] = (cat[d.Category] || 0) + d.Amount));
   const dsl = F.filter((x) => x.Product === "Diesel"), def = F.filter((x) => x.Product === "DEF");
   const dGal = sum(dsl, "Gallons"), dCost = sum(dsl, "InvoiceAmount"), defCost = sum(def, "InvoiceAmount");
@@ -313,7 +391,7 @@ function niceMax(v) { if (!(v > 0)) return 1; const p = Math.pow(10, Math.floor(
 function vbars(target, groups, { fmt, ref, refLabel, height = 240, max } = {}) {
   const W = 560, H = height, P = { l: 44, r: 8, t: 18, b: 34 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
-  groups.forEach((g) => g.bars.forEach((b) => { if (!ok(b.value)) { b.value = 0; b.showLabel = false; } }));
+  groups.forEach((g) => g.bars.forEach((b) => { if (!ok(b.value)) b.value = 0; if (!b.value) b.showLabel = false; }));
   const all = groups.flatMap((g) => g.bars.map((b) => b.value));
   const ymax = max || niceMax(Math.max(...all, ref || 0) * 1.08);
   const y = (v) => P.t + (H - P.t - P.b) * (1 - v / ymax);
@@ -361,7 +439,7 @@ const CATS = [
   ["Driver pay", "var(--s1)", (x) => x.dpay],
   ["Fuel + DEF", "var(--s2)", (x) => x.cat["Fuel"] || 0],
   ["Company fee 12%", "var(--s3)", (x) => x.cat["Company Fee"] || 0],
-  ["Insurance/trailer/ELD/IFTA", "var(--s4)", (x) => x.cat["Fixed Weekly"] || 0],
+  ["Insurance & weekly fees", "var(--s4)", (x) => x.cat["Fixed Weekly"] || 0],
   ["Tolls + PrePass", "var(--s5)", (x) => x.cat["Tolls"] || 0],
   ["Maintenance", "var(--s7)", (x) => x.cat["Maintenance"] || 0],
   ["Driver bonus", "var(--s6)", (x) => x.cat["Driver Bonus"] || 0],
@@ -393,6 +471,7 @@ function pctChart(ms) {
 
 // ---- render ----
 var render = function () {
+  const TRUCKS = visTrucks();
   const fleet = m(), byT = Object.fromEntries(TRUCKS.map((t) => [t, m(t)]));
   if (!D || !D.settlements.length) return;
   const label = week === "all" ? `${WEEKS.length} week${WEEKS.length > 1 ? "s" : ""}` : WLABEL[week];
@@ -454,20 +533,20 @@ var render = function () {
 
   // RPM vs CPM per truck-week
   const tw = (t, w) => { const save = week; week = w; const r = m(t); week = save; return r; };
-  const showWeeks = week === "all" ? WEEKS : [week];
+  const saveW = week, showWeeks = week === "all" ? WEEKS.slice(-8) : [week];
   legend("#rpmLegend", [["var(--s3)", "RPM (revenue/mile)"], ["var(--s8)", "CPM (cost/mile)"]]);
-  vbars("#rpmChart", TRUCKS.flatMap((t) => showWeeks.map((w) => { const x = tw(t, w); return { label: `${t} · ${WLABEL[w]}`, bars: [
-    { value: x.rpm, color: "var(--s3)", tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>RPM ${pm(x.rpm)} · CPM ${pm(x.cpm)}<br>Profit/mi ${pm(x.rpm - x.cpm)} → ${money(x.profit)}` },
-    { value: x.cpm, color: "var(--s8)", tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>CPM ${pm(x.cpm)}: driver ${pm(x.dpay / x.miles)}, fuel ${pm((x.cat.Fuel || 0) / x.miles)}, other ${pm((x.op - x.dpay - (x.cat.Fuel || 0)) / x.miles)}` },
-  ] }; })), { fmt: (v) => "$" + v.toFixed(2) });
+  vbars("#rpmChart", showWeeks.map((w) => { week = w; const x = m(); week = saveW; return { label: WLABEL[w], bars: [
+    { value: x.rpm, color: "var(--s3)", tip: `<b>${WLABEL[w]}</b><br>RPM ${pm(x.rpm)} · CPM ${pm(x.cpm)}<br>Profit/mi ${pm(x.rpm - x.cpm)} → ${money(x.profit)}` },
+    { value: x.cpm, color: "var(--s8)", tip: `<b>${WLABEL[w]}</b><br>CPM ${pm(x.cpm)}: driver ${pm(x.dpay / x.miles)}, fuel ${pm((x.cat.Fuel || 0) / x.miles)}, other ${pm((x.op - x.dpay - (x.cat.Fuel || 0)) / x.miles)}` },
+  ] }; }), { fmt: (v) => "$" + v.toFixed(2) });
 
   // MPG
   legend("#mpgLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
-  const mpgGroups = (week === "all" ? [...WEEKS, "all"] : [week]).map((w) => ({ label: w === "all" ? `${WEEKS.length}-week total` : WLABEL[w], bars: TRUCKS.map((t) => {
+  const mpgGroups = (week === "all" ? [...WEEKS.slice(-6), "all"] : [week]).map((w) => ({ label: w === "all" ? `${WEEKS.length}-week total` : WLABEL[w], bars: TRUCKS.map((t) => {
     const x = w === "all" ? byT[t] : tw(t, w);
     return { value: x.mpg, color: TC[t], tip: `<b>Truck ${t} · ${w === "all" ? WEEKS.length + " weeks" : WLABEL[w]}</b><br>${x.mpg.toFixed(2)} MPG<br>${num(x.miles)} mi ÷ ${num(x.dGal, 1)} gal diesel<br>Fuel+DEF ${pm(x.fpm)}/mi · ${pm(x.dCost / x.dGal)}/gal` };
   }) }));
-  vbars("#mpgChart", mpgGroups, { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 MPG target", max: 9 });
+  vbars("#mpgChart", mpgGroups, { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 MPG target" });
 
   // Gross
   legend("#grossLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
@@ -476,7 +555,7 @@ var render = function () {
     { fmt: (v, axis) => axis ? "$" + (v / 1000).toFixed(0) + "k" : "$" + (v / 1000).toFixed(1) + "k" });
 
   // Deadhead per load
-  const loads = fleet.L.slice();
+  const loads = fleet.L.filter((l) => l.TotalMiles > 0);
   legend("#dhLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
   hbars("#dhChart", loads.slice().sort((a, b) => b.DeadheadPct - a.DeadheadPct).map((l) => ({ label: `${l.TruckID} · ${l.Pickup.split(",")[0]} → ${l.Delivery.split(",")[0]}`.slice(0, 32), value: l.DeadheadPct, color: TC[l.TruckID],
     tip: `<b>Load ${l.LoadID} (truck ${l.TruckID})</b><br>${l.Pickup} → ${l.Delivery}<br>${num(l.EmptyMiles, 1)} empty / ${num(l.TotalMiles, 1)} total = ${pct(l.DeadheadPct)}` })),
@@ -495,22 +574,31 @@ var render = function () {
     return { value: v, color: TC[t], tip: `<b>Truck ${t}</b><br>${lab}: $${v.toFixed(3)}${key === "fpm10" ? ` (actual ${pm(x.fpm)}/mi)` : `<br>${money(x[key], 2)} over ${num(x.miles)} mi`}` };
   }) })), { fmt: (v) => "$" + v.toFixed(3) });
 
+  // carrier table (ignores carrier filter, respects week)
+  { const saveC = carrier; const cs = CARRIERS.map((c) => { carrier = c; const x = m(); carrier = saveC; return [c, x]; });
+    const tw2 = (x) => new Set(x.S.map((s) => s.TruckID + s.WeekStart)).size || 1;
+    const rows = [["Truck-weeks", (x) => tw2(x), (v) => v], ["Gross", (x) => x.gross, (v) => money(v)], ["Company fee", (x) => (x.cat["Company Fee"] || 0) / x.gross, (v) => pct(v)],
+      ["Fixed fees / truck-week", (x) => (x.cat["Fixed Weekly"] || 0) / tw2(x), (v) => money(v)], ["Diesel $/gal", (x) => x.dCost / x.dGal, pm], ["RPM", (x) => x.rpm, pm],
+      ["CPM", (x) => x.cpm, pm], ["Operating margin", (x) => x.margin, pct], ["One-time charges", (x) => x.oneTime, (v) => money(v)], ["Net pay", (x) => x.net, (v) => money(v)]];
+    $("#carrierTable").innerHTML = `<thead><tr><th>Metric</th>${cs.map(([c]) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>` +
+      rows.map(([l, fn, fmt]) => `<tr><td>${l}</td>${cs.map(([, x]) => `<td>${x.S.length ? fmt(fn(x)) : "—"}</td>`).join("")}</tr>`).join("") + "</tbody>"; }
+
   // one-time table
-  const ot = D.deductions.filter((d) => !d.IsOperating && (week === "all" || d.WeekStart === week)).map((d) => [d.TruckID, d.SettlementID, d.Category, d.Description, -d.Amount])
-    .concat(D.reimbursements.filter((r) => week === "all" || r.WeekStart === week).map((r) => [r.TruckID, r.SettlementID, "Reimbursement", r.Description, r.Amount]));
+  const ot = fleet.X.filter((d) => !d.IsOperating).map((d) => [d.TruckID, d.SettlementID, d.Category, d.Description, -d.Amount])
+    .concat(fleet.R.map((r) => [r.TruckID, r.SettlementID, "Reimbursement", r.Description, r.Amount]));
   $("#oneTime").innerHTML = `<thead><tr><th>Truck</th><th class="left">Statement</th><th class="left">Type</th><th class="left">Description</th><th>Amount</th></tr></thead><tbody>` +
     ot.map((r) => `<tr><td>${r[0]}</td><td class="left">${r[1]}</td><td class="left">${r[2]}</td><td class="left">${r[3]}</td><td class="${r[4] < 0 ? "lose" : "win"}">${r[4] < 0 ? "−" : "+"}${money(Math.abs(r[4]), 2)}</td></tr>`).join("") +
     `<tr><td colspan="4"><b>Net effect on your checks</b></td><td><b>${money(ot.reduce((t, r) => t + r[4], 0), 2)}</b></td></tr></tbody>`;
 
   // loads table
   $("#loadsTable").innerHTML = `<thead><tr><th>Load</th><th>Truck</th><th class="left">Pickup → Delivery</th><th class="left">PU date</th><th>Loaded</th><th>Empty</th><th>Total mi</th><th>Gross</th><th>RPM</th><th>Loaded RPM</th><th>Deadhead</th><th>Driver pay</th></tr></thead><tbody>` +
-    loads.map((l) => `<tr><td>${l.LoadID}</td><td>${l.TruckID}</td><td class="left">${l.Pickup} → ${l.Delivery}</td><td class="left">${l.PickupDate.slice(5)}</td><td>${num(l.LoadedMiles, 1)}</td><td>${num(l.EmptyMiles, 1)}</td><td>${num(l.TotalMiles, 1)}</td><td>${money(l.Gross)}</td>
-      <td class="${l.RPM < fleet.cpm ? "lose" : ""}">${pm(l.RPM)}${l.RPM < fleet.cpm ? ' <span class="pill bad">low</span>' : ""}</td><td>${pm(l.LoadedRPM)}</td>
+    fleet.L.map((l) => `<tr><td>${esc(l.LoadID)}</td><td>${l.TruckID}</td><td class="left">${esc(l.Pickup)} → ${esc(l.Delivery)}</td><td class="left">${(l.PickupDate || l.DeliveryDate || "").slice(5)}</td><td>${num(l.LoadedMiles, 1)}</td><td>${num(l.EmptyMiles, 1)}</td><td>${num(l.TotalMiles, 1)}</td><td>${money(l.Gross)}</td>
+      <td class="${ok(l.RPM) && l.RPM < fleet.cpm ? "lose" : ""}">${pm(l.RPM)}${ok(l.RPM) && l.RPM < fleet.cpm ? ' <span class="pill bad">low</span>' : ""}</td><td>${pm(l.LoadedRPM)}</td>
       <td class="${l.DeadheadPct > 0.15 ? "lose" : ""}">${pct(l.DeadheadPct)}</td><td>${money(l.DriverPay, 2)}</td></tr>`).join("") + "</tbody>";
 
   // fuel table
   $("#fuelTable").innerHTML = `<thead><tr><th class="left">Date</th><th>Truck</th><th class="left">Product</th><th class="left">Location</th><th>Gallons</th><th>Retail</th><th>Charged</th><th>Discount</th><th>$/gal</th></tr></thead><tbody>` +
-    fleet.F.map((f) => `<tr><td class="left">${f.Date.slice(5)}</td><td>${f.TruckID}</td><td class="left">${f.Product}</td><td class="left">${f.City}, ${f.State}</td><td>${num(f.Gallons, 2)}</td><td>${money(f.RetailAmount, 2)}</td><td>${money(f.InvoiceAmount, 2)}</td><td>${money(f.Discount, 2)}</td><td>${f.PricePerGal ? pm(f.PricePerGal) : "—"}</td></tr>`).join("") +
+    fleet.F.map((f) => `<tr><td class="left">${(f.Date || "").slice(5) || "—"}</td><td>${f.TruckID}</td><td class="left">${f.Product}</td><td class="left">${esc(f.City)}, ${esc(f.State)}</td><td>${num(f.Gallons, 2)}</td><td>${money(f.RetailAmount, 2)}</td><td>${money(f.InvoiceAmount, 2)}</td><td>${money(f.Discount, 2)}</td><td>${f.PricePerGal ? pm(f.PricePerGal) : "—"}</td></tr>`).join("") +
     `<tr><td colspan="4"><b>Total</b></td><td><b>${num(fleet.F.reduce((t, f) => t + f.Gallons, 0), 2)}</b></td><td></td><td><b>${money(fleet.dCost + fleet.defCost, 2)}</b></td><td><b>${money(fleet.disc, 2)}</b></td><td></td></tr></tbody>`;
 }
 
@@ -549,45 +637,113 @@ document.querySelectorAll("#themeSeg button").forEach((b) => b.addEventListener(
   const t = b.dataset.theme; if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
   document.querySelectorAll("#themeSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); }));
 // ---- automatic red flags (recomputed from whatever data is loaded) ----
-function autoFlags() {
-  const out = [], save = week;
-  const fleetAll = (() => { week = "all"; const r = m(); week = save; return r; })();
-  const SEV = { critical: 0, serious: 1, warning: 2 };
+// each flag: {sev, title, body, amt, score, wk}
+function computeFlags() {
+  const out = [], save = week, saveC = carrier; carrier = "all";
+  const at = (w, t) => { week = w; const r = m(t); week = save; return r; };
+  const fleetAll = at("all");
+  const sum = (a, k) => a.reduce((t, r) => t + (+r[k] || 0), 0);
+  const add = (sev, title, body, amt, score, wk) => out.push({ sev, title, body, amt, score, wk });
   D.settlements.forEach((s) => {
-    const L = D.loads.filter((l) => l.SettlementID === s.SettlementID), X = D.deductions.filter((d) => d.SettlementID === s.SettlementID);
-    const R = D.reimbursements.filter((r) => r.SettlementID === s.SettlementID), sum = (a, k) => a.reduce((t, r) => t + (+r[k] || 0), 0);
+    const id = s.SettlementID, L = D.loads.filter((l) => l.SettlementID === id), X = D.deductions.filter((d) => d.SettlementID === id);
+    const R = D.reimbursements.filter((r) => r.SettlementID === id), wk = s.WeekStart, who = `Truck ${s.TruckID} (${id})`;
     const calc = s.Gross - s.DriverPay + sum(R, "Amount") - sum(X, "Amount");
     if (Math.abs(calc - s.NetPay) > 0.05 || Math.abs(sum(L, "Gross") - s.Gross) > 0.05)
-      out.push(["critical", `${s.SettlementID} doesn't add up`, `Gross − driver pay + reimbursements − deductions = ${money(calc, 2)}, statement says net pay ${money(s.NetPay, 2)}. Loads total ${money(sum(L, "Gross"), 2)} vs gross ${money(s.Gross, 2)}.`, money(calc - s.NetPay, 2), 1e9]);
+      add("critical", `${who}: statement doesn't add up`, `Gross − driver pay + reimbursements − deductions = ${money(calc, 2)}, but net pay says ${money(s.NetPay, 2)}. Loads total ${money(sum(L, "Gross"), 2)} vs gross ${money(s.Gross, 2)}.`, money(calc - s.NetPay, 2), 1e9, wk);
+    const lp = sum(L, "DriverPay");
+    if (L.length && Math.abs(lp - s.DriverPay) > 1)
+      add("critical", `${who}: driver pay charged ≠ driver pay on the loads`, `You were charged ${money(s.DriverPay, 2)} for driver pay, but the load table only shows ${money(lp, 2)} of driver payments. Ask what the ${money(s.DriverPay - lp, 2)} difference is.`, money(s.DriverPay - lp, 2), Math.abs(s.DriverPay - lp), wk);
     const ot = X.filter((d) => !d.IsOperating);
-    if (ot.length) out.push(["serious", `Truck ${s.TruckID}, ${weekLabel(s.WeekStart)}: ${money(sum(ot, "Amount"), 2)} in one-time charges`, ot.map((d) => `${d.Description} (${money(d.Amount, 2)})`).join("; ") + ". Ask for receipts and check they're for your truck.", money(sum(ot, "Amount")), sum(ot, "Amount")]);
+    if (ot.length) add("serious", `${who}: ${money(sum(ot, "Amount"), 2)} in one-time / unexplained charges`, ot.map((d) => `${d.Description} (${money(d.Amount, 2)})`).join("; ") + ". Ask for receipts and check they're for your truck.", money(sum(ot, "Amount")), sum(ot, "Amount"), wk);
+    const zero = L.filter((l) => !(l.TotalMiles > 0));
+    if (zero.length) add("warning", `${who}: ${zero.length} load(s) with no miles`, zero.map((l) => `${l.LoadID} ${l.Pickup} → ${l.Delivery} paid ${money(l.Gross)} with 0 miles`).join("; ") + ". Usually a TONU or layover — check it belongs to this week and truck.", money(sum(zero, "Gross")), 1, wk);
   });
   TRUCKS.forEach((t) => {
-    const all = (() => { week = "all"; const r = m(t); week = save; return r; })();
-    if (all.dGal > 0 && all.mpg < 6.5) out.push(["serious", `Truck ${t} averages ${all.mpg.toFixed(2)} MPG (target 6.5)`, `${num(all.miles)} mi on ${num(all.dGal, 1)} gal diesel across ${new Set(all.S.map((s) => s.WeekStart)).size} week(s). At 6.5 MPG it would have used ${num(all.dGal - all.miles / 6.5, 0)} fewer gallons.`, "~" + money((all.dGal - all.miles / 6.5) * (all.dCost / all.dGal)), (all.dGal - all.miles / 6.5) * (all.dCost / all.dGal)]);
-    if (all.dh > 0.15) out.push(["serious", `Truck ${t} deadhead ${pct(all.dh)} (limit 15%)`, `${num(all.empty)} empty of ${num(all.miles)} total miles. Excess empty miles above 15%: ${num(all.empty - 0.15 * all.miles)}.`, "~" + money((all.empty - 0.15 * all.miles) * fleetAll.cpm), (all.empty - 0.15 * all.miles) * fleetAll.cpm]);
-    WEEKS.forEach((w) => {
-      week = w; const x = m(t); week = save;
+    const all = at("all", t);
+    if (all.dGal > 0 && all.mpg < 6.5) add("serious", `Truck ${t} averages ${all.mpg.toFixed(2)} MPG (target 6.5)`, `${num(all.miles)} mi on ${num(all.dGal, 1)} gal diesel over ${new Set(all.S.map((s) => s.WeekStart)).size} week(s). At 6.5 MPG it would have used ${num(all.dGal - all.miles / 6.5, 0)} fewer gallons.`, "~" + money((all.dGal - all.miles / 6.5) * (all.dCost / all.dGal)), (all.dGal - all.miles / 6.5) * (all.dCost / all.dGal), null);
+    if (all.dh > 0.15) add("serious", `Truck ${t} deadhead ${pct(all.dh)} (limit 15%)`, `${num(all.empty)} empty of ${num(all.miles)} total miles. Excess empty miles above 15%: ${num(all.empty - 0.15 * all.miles)}.`, "~" + money((all.empty - 0.15 * all.miles) * fleetAll.cpm), (all.empty - 0.15 * all.miles) * fleetAll.cpm, null);
+    WEEKS.forEach((w, i) => {
+      const x = at(w, t);
+      if (!x.S.length) {
+        const prev = WEEKS[i - 1] && D.settlements.some((s) => s.TruckID === t && s.WeekStart === WEEKS[i - 1]);
+        if (prev) add("warning", `Truck ${t}: no statement for ${WLABEL[w]}`, `Truck ${t} had a statement the week before. Upload it, or note why the truck didn't run.`, "missing", 0, w);
+        return;
+      }
       if (!x.L.length) return;
-      if (x.profit < 0) out.push(["critical", `Truck ${t} lost money in ${WLABEL[w]}`, `RPM ${pm(x.rpm)} vs CPM ${pm(x.cpm)} on ${num(x.miles)} miles (fuel ${money(x.cat.Fuel || 0)}, tolls ${money(x.tolls)}, maintenance ${money(x.maint)}).`, money(x.profit), -x.profit]);
-      if (x.maint / x.miles > 0.1) out.push(["warning", `Truck ${t} maintenance ${pm(x.maint / x.miles)}/mi in ${WLABEL[w]}`, X_desc(x), money(x.maint, 2), x.maint]);
+      if (x.dGal > 0 && x.mpg > 9) add("warning", `Truck ${t}: fuel looks incomplete in ${WLABEL[w]} (${x.mpg.toFixed(1)} MPG)`, `${num(x.miles)} mi but only ${num(x.dGal, 0)} gal of diesel on the statement. Some fuel was probably bought before the week, paid outside the fuel card, or will be billed next week — MPG and cost per mile look better than reality.`, "check", 0, w);
+      if (x.profit < 0) add("critical", `Truck ${t} lost money in ${WLABEL[w]}`, `RPM ${pm(x.rpm)} vs CPM ${pm(x.cpm)} on ${num(x.miles)} miles (fuel ${money(x.cat.Fuel || 0)}, tolls ${money(x.tolls)}, maintenance ${money(x.maint)}).`, money(x.profit), -x.profit, w);
+      if (x.miles > 0 && x.maint / x.miles > 0.1) add("warning", `Truck ${t} maintenance ${pm(x.maint / x.miles)}/mi in ${WLABEL[w]}`, x.X.filter((d) => d.Category === "Maintenance").map((d) => `${d.Description} ${money(d.Amount, 2)}`).join("; "), money(x.maint, 2), x.maint, w);
+      const cheap = x.L.filter((l) => l.TotalMiles > 0 && l.RPM < fleetAll.cpm);
+      if (cheap.length) add("warning", `Truck ${t}, ${WLABEL[w]}: ${cheap.length} load(s) paid less than your ${pm(fleetAll.cpm)}/mi cost`, cheap.map((l) => `${l.Pickup} → ${l.Delivery} ${pm(l.RPM)}/mi`).join("; ") + ".", money(cheap.reduce((a, l) => a + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)), cheap.reduce((a, l) => a + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0), w);
     });
   });
-  const cheap = D.loads.filter((l) => l.RPM < fleetAll.cpm);
-  if (cheap.length) out.push(["warning", `${cheap.length} load(s) paid less than your ${pm(fleetAll.cpm)}/mi cost`, cheap.map((l) => `${l.TruckID}: ${l.Pickup} → ${l.Delivery} ${pm(l.RPM)}/mi`).join("; ") + ".", money(cheap.reduce((t, l) => t + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)), cheap.reduce((t, l) => t + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)]);
-  out.sort((a, b) => SEV[a[0]] - SEV[b[0]] || b[4] - a[4]);
-  $("#autoFlags").innerHTML = out.length ? out.map(([sev, t, b, a]) => `<li class="flag ${sev}"><div class="icon" aria-hidden="true">${sev === "warning" ? "!" : "▲"}</div>
-    <div><div class="sev">${sev}</div><div class="title">${esc(t)}</div><div class="body">${esc(b)}</div></div><div class="amt">${a}</div></li>`).join("") : `<li class="muted">No automatic flags. 👍</li>`;
+  carrier = saveC;
+  const SEV = { critical: 0, serious: 1, warning: 2 };
+  return out.sort((a, b) => SEV[a.sev] - SEV[b.sev] || b.score - a.score);
 }
-function X_desc(x) { return x.X.filter((d) => d.Category === "Maintenance").map((d) => `${d.Description} ${money(d.Amount, 2)}`).join("; "); }
+function flagList(list, emptyMsg) {
+  return list.length ? list.map((f) => `<li class="flag ${f.sev}"><div class="icon" aria-hidden="true">${f.sev === "warning" ? "!" : "▲"}</div>
+    <div><div class="sev">${f.sev}${f.wk ? " · " + WLABEL[f.wk] : ""}</div><div class="title">${esc(f.title)}</div><div class="body">${esc(f.body)}</div></div><div class="amt">${esc(f.amt)}</div></li>`).join("") : `<li class="muted">${emptyMsg}</li>`;
+}
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---- This week ----
+function arrow(cur, prev, higherIsBetter, fmt) {
+  if (!ok(cur) || !ok(prev) || prev === cur) return "";
+  const up = cur > prev, good = up === higherIsBetter;
+  return `<span class="delta ${good ? "up" : "down"}">${up ? "▲" : "▼"} ${fmt(Math.abs(cur - prev))} vs last week</span>`;
+}
+function renderWeek(flags) {
+  if (!curWeek) { $("#weekTitle").textContent = "No statements yet"; $("#checklist").innerHTML = ""; $("#weekKpis").innerHTML = ""; $("#weekFlags").innerHTML = ""; return; }
+  const i = WEEKS.indexOf(curWeek), prevW = WEEKS[i - 1], save = week, saveC = carrier; carrier = "all";
+  const end = new Date(new Date(curWeek + "T00:00:00Z").getTime() + 6 * 864e5).toISOString().slice(0, 10);
+  $("#weekTitle").textContent = `${WLABEL[curWeek]}, ${curWeek.slice(0, 4)}`;
+  $("#weekCaption").textContent = i === WEEKS.length - 1 ? "Latest week" : `Week ${i + 1} of ${WEEKS.length}`;
+  $("#prevWeek").disabled = i <= 0; $("#nextWeek").disabled = i >= WEEKS.length - 1;
+  // checklist: every truck seen in the last 4 weeks up to this one
+  const recent = new Set(D.settlements.filter((s) => s.WeekStart <= curWeek && WEEKS.indexOf(s.WeekStart) >= i - 3).map((s) => s.TruckID));
+  $("#checklist").innerHTML = [...recent].sort().map((t) => {
+    const st = D.settlements.filter((s) => s.TruckID === t && s.WeekStart === curWeek);
+    return st.length ? st.map((s) => `<li><span><span class="swatch" style="background:${TC[t]}"></span><b>Truck ${esc(t)}</b> · ${esc(DRIVER[t] || "")}<br><span class="muted">${esc(s.Carrier)}</span></span>
+        <span style="text-align:right"><span class="st" style="color:var(--good-text)">✓ ${esc(s.SettlementID)}</span><br><span class="muted">gross ${money(s.Gross)} · net ${money(s.NetPay)}</span></span></li>`).join("")
+      : `<li><span><span class="swatch" style="background:${TC[t]}"></span><b>Truck ${esc(t)}</b> · ${esc(DRIVER[t] || "")}</span><span class="st" style="color:var(--critical-text)">✗ Missing</span></li>`;
+  }).join("");
+  week = curWeek; const x = m(); const p = prevW ? (week = prevW, m()) : null; week = save; carrier = saveC;
+  const pv = (k) => (p ? p[k] : NaN);
+  const k = [
+    ["Gross", money(x.gross), arrow(x.gross, pv("gross"), true, (v) => money(v)), `${x.L.length} loads · ${x.S.length} statements`],
+    ["Miles", num(x.miles), arrow(x.miles, pv("miles"), true, (v) => num(v)), `${pct(x.dh)} deadhead`],
+    ["RPM", pm(x.rpm), arrow(x.rpm, pv("rpm"), true, pm), `CPM ${pm(x.cpm)}`],
+    ["Operating profit", money(x.profit), arrow(x.profit, pv("profit"), true, (v) => money(v)), `${pct(x.margin)} margin`],
+    ["Net pay", money(x.net, 2), arrow(x.net, pv("net"), true, (v) => money(v)), `one-time ${money(x.oneTime)} · reimb. ${money(x.reimb)}`],
+    ["MPG", ok(x.mpg) ? x.mpg.toFixed(2) : "—", arrow(x.mpg, pv("mpg"), true, (v) => v.toFixed(2)), `${num(x.dGal, 0)} gal · ${pm(x.dCost / x.dGal)}/gal`],
+  ];
+  $("#weekKpis").innerHTML = k.map(([l, v, d, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${d || "&nbsp;"}</div><div class="note">${n}</div></div>`).join("");
+  $("#weekFlags").innerHTML = flagList(flags.filter((f) => f.wk === curWeek), "Nothing flagged this week. 👍");
+}
+
+// ---- Week by week ----
+function renderTrends() {
+  const save = week; const rows = WEEKS.map((w) => { week = w; const x = m(); week = save; return [w, x]; }).reverse();
+  const cols = [["Statements", (x) => x.S.length, (v) => v, null], ["Loads", (x) => x.L.length, (v) => v, null], ["Miles", (x) => x.miles, (v) => num(v), true],
+    ["Gross", (x) => x.gross, (v) => money(v), true], ["RPM", (x) => x.rpm, pm, true], ["CPM", (x) => x.cpm, pm, false],
+    ["Op. profit", (x) => x.profit, (v) => money(v), true], ["Margin", (x) => x.margin, pct, true], ["MPG", (x) => x.mpg, (v) => ok(v) ? v.toFixed(2) : "—", true],
+    ["Deadhead", (x) => x.dh, pct, false], ["One-time", (x) => x.oneTime, (v) => money(v), false], ["Net pay", (x) => x.net, (v) => money(v), true]];
+  $("#trendTable").innerHTML = `<thead><tr><th>Week</th>${cols.map((c) => `<th>${c[0]}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(([w, x], i) => { const p = rows[i + 1] && rows[i + 1][1];
+      return `<tr><td><a href="#this-week" data-goweek="${w}">${WLABEL[w]}</a></td>${cols.map(([, fn, fmt, hib]) => { const v = fn(x);
+        let d = ""; if (p && hib != null && ok(v) && ok(fn(p)) && v !== fn(p)) d = ` <span class="delta ${(v > fn(p)) === hib ? "up" : "down"}">${v > fn(p) ? "▲" : "▼"}</span>`;
+        return `<td class="${fn === cols[6][1] && v < 0 ? "lose" : ""}">${fmt(v)}${d}</td>`; }).join("")}</tr>`; }).join("") + "</tbody>";
+}
+$("#trendTable").addEventListener("click", (e) => { const a = e.target.closest("[data-goweek]"); if (a) { curWeek = a.dataset.goweek; } });
 
 // ---- statements table ----
 let canWrite = false, pendingDelete = null;
 function stmtTable() {
-  const rows = D.settlements.slice().sort((a, b) => b.WeekStart.localeCompare(a.WeekStart) || a.TruckID.localeCompare(b.TruckID));
-  $("#stmtTable").innerHTML = `<thead><tr><th class="left">Statement</th><th>Truck</th><th class="left">Week</th><th>Loads</th><th>Gross</th><th>Deductions</th><th>Net pay</th><th></th></tr></thead><tbody>` +
-    rows.map((s) => `<tr><td class="left">${esc(s.SettlementID)}</td><td>${esc(s.TruckID)}</td><td class="left">${WLABEL[s.WeekStart] || s.WeekStart}</td><td>${D.loads.filter((l) => l.SettlementID === s.SettlementID).length}</td>
+  const rows = D.settlements.filter((s) => (carrier === "all" || s.Carrier === carrier) && (week === "all" || s.WeekStart === week))
+    .sort((a, b) => b.WeekStart.localeCompare(a.WeekStart) || a.TruckID.localeCompare(b.TruckID));
+  $("#stmtTable").innerHTML = `<thead><tr><th class="left">Statement</th><th class="left">Carrier</th><th>Truck</th><th class="left">Week</th><th>Loads</th><th>Gross</th><th>Deductions</th><th>Net pay</th><th></th></tr></thead><tbody>` +
+    rows.map((s) => `<tr><td class="left">${esc(s.SettlementID)}</td><td class="left">${esc(s.Carrier)}</td><td>${esc(s.TruckID)}</td><td class="left">${WLABEL[s.WeekStart] || s.WeekStart}</td><td>${D.loads.filter((l) => l.SettlementID === s.SettlementID).length}</td>
       <td>${money(s.Gross, 2)}</td><td>${money(s.Deductions, 2)}</td><td>${money(s.NetPay, 2)}</td>
       <td>${canWrite && db ? `<button class="btn danger" data-del="${esc(s.SettlementID)}">${pendingDelete === s.SettlementID ? "Confirm delete" : "Delete"}</button>` : ""}</td></tr>`).join("") + "</tbody>";
 }
@@ -596,11 +752,34 @@ $("#stmtTable").addEventListener("click", async (e) => {
   const id = b.dataset.del;
   if (pendingDelete !== id) { pendingDelete = id; stmtTable(); return; }
   pendingDelete = null; b.disabled = true;
-  try { await db.doc("settlements/" + id).delete(); } catch (err) { setStatus("err", "Delete failed: " + (err.message || err.code)); }
+  try { await db.doc("settlements/" + id.replace(/[^A-Za-z0-9_\-.~:@+]/g, "-")).delete(); } catch (err) { setStatus("err", "Delete failed: " + (err.message || err.code)); }
 });
 
+// ---- tabs (hash routing) ----
+const TABS = ["this-week", "dashboard", "trends", "loads", "statements"];
+function showTab() {
+  const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "this-week";
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === t));
+  document.querySelectorAll("#tabs a").forEach((a) => a.setAttribute("aria-selected", a.dataset.tab === t));
+  $("#filterbar").style.display = t === "this-week" ? "none" : "";
+  if (D) render();
+}
+window.addEventListener("hashchange", showTab);
+$("#prevWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i > 0) { curWeek = WEEKS[i - 1]; render(); } });
+$("#nextWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i < WEEKS.length - 1) { curWeek = WEEKS[i + 1]; render(); } });
+$("#carrierSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; carrier = b.dataset.carrier;
+  document.querySelectorAll("#carrierSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); });
+
 const _render = render;
-render = function () { _render(); if (D) { autoFlags(); stmtTable(); } };
+render = function () {
+  if (!D) return;
+  const flags = computeFlags();
+  renderWeek(flags);
+  if (!D.settlements.length) return;
+  _render();
+  const save = week; $("#autoFlags").innerHTML = flagList(flags.filter((f) => (week === "all" || !f.wk || f.wk === week) && (carrier === "all" || !f.wk || f.title.match(/Truck (\S+)/) && visTrucks().includes(f.title.match(/Truck (\S+)/)[1]))), "No red flags. 👍");
+  renderTrends(); stmtTable();
+};
 
 // ---- database ----
 let db = null, sample = null;
@@ -616,9 +795,9 @@ function fromDocs(docs) {
   d.trucks = Object.values(tr);
   return d;
 }
-function showOffline(msg) { if (!D) { setData(window.FLEET); render(); } setStatus("err", msg); $("#manage").style.display = "none"; }
+function showOffline(msg) { setStatus("err", msg); $("#drop").style.display = "none"; }
 
-setData(window.FLEET); render(); // instant first paint from the bundled copy
+setData(window.FLEET); showTab(); // instant first paint from the bundled copy
 (async () => {
   try { db = await window.claude?.use?.("db"); } catch { db = null; }
   if (!db) return showOffline("Offline copy (database not available in this view)");
@@ -648,14 +827,14 @@ async function pdfToText(file) {
   }
   return lines.join("\n");
 }
-const CATEGORY_HELP = `Category must be one of: "Company Fee"; "Fixed Weekly" (trailer rental, ELD, IFTA, insurance); "Fuel"; "Tolls" (toll transactions and PrePass); "Maintenance"; "Driver Bonus"; "Registration" (truck registration, even if typed Safety); "Safety / Driver Travel" (air tickets, Uber, hotels, other Safety lines); "Cash Advance"; "Other".`;
+const CATEGORY_HELP = `Category must be one of: "Company Fee" (company/dispatch % fee); "Fixed Weekly" (trailer rental, ELD, IFTA, insurance, admin fee, recurring plate fee, other fixed weekly charges); "Fuel"; "Tolls" (toll transactions and PrePass); "Maintenance" (repairs, oil changes, engine oil and other truck parts/fluids, even if typed Other); "Driver Bonus"; "Registration" (truck registration, even if typed Safety); "Safety / Driver Travel" (air tickets, Uber, hotels, other Safety lines); "Salary Adjustment" (salary adjustments / auto charges); "Cash Advance" (advances); "Other" (anything else).`;
 function prompt(text) {
   return `You convert a trucking "Truck Owner Settlement" statement (text extracted from a PDF; table cells are separated by " | ", and some cells wrap onto the next line) into JSON.
 Return ONLY a JSON object with exactly these keys:
-{"SettlementID": "BL-…", "TruckID": "unit number digits only, e.g. 777", "Driver": "driver full name", "WeekStart": "YYYY-MM-DD (Period Start)", "WeekEnd": "YYYY-MM-DD", "CheckDate": "YYYY-MM-DD", "Trips": number,
- "Gross": number (Total Gross), "DriverPay": positive number, "Reimbursements": number (sum of Reimbursement lines, 0 if none), "Deductions": number (deductions total), "NetPay": number,
+{"SettlementID": "BL-…", "Carrier": "carrier/company that issued the statement (the name at top left / MC number), e.g. Wenze Transport Services or VKL Trucking Inc", "Owner": "Vendor name", "TruckID": "unit number digits only, e.g. 777", "Driver": "driver full name", "WeekStart": "YYYY-MM-DD (Period Start)", "WeekEnd": "YYYY-MM-DD", "CheckDate": "YYYY-MM-DD", "Trips": number,
+ "Gross": number (Total Gross), "DriverPay": positive number (the Driver Pay line in Bill Information, which may differ from the load payments), "Reimbursements": number (sum of Reimbursement lines, 0 if none), "Deductions": number (deductions total), "NetPay": number,
  "loads": [{"LoadID": "", "Pickup": "City, ST", "Delivery": "City, ST", "PickupDate": "YYYY-MM-DD", "DeliveryDate": "YYYY-MM-DD", "LoadedMiles": n, "EmptyMiles": n, "TotalMiles": n, "Gross": n, "DriverPay": n}],
- "fuel": [{"Date": "YYYY-MM-DD", "Product": "Diesel" or "DEF", "City": "", "State": "ST", "Gallons": n, "RetailAmount": n, "InvoiceAmount": n}],
+ "fuel": [{"Date": "YYYY-MM-DD", "Product": "Diesel" or "DEF" (ULSD = Diesel, DEFD = DEF), "City": "", "State": "ST", "Gallons": n, "RetailAmount": n, "InvoiceAmount": n (use the retail amount if no invoice column)}], Use null for any date not printed.
  "deductions": [{"Category": "…", "StatementType": "Type column as printed", "Description": "short description incl. names/dates/invoice ids", "Amount": n}],
  "reimbursements": [{"Description": "", "Amount": n}]}
 ${CATEGORY_HELP}
@@ -666,24 +845,24 @@ ${text}`;
 }
 function normalize(x) {
   const id = String(x.SettlementID).trim(), T = String(x.TruckID).replace(/\D/g, ""), wk = x.WeekStart, n = (v) => +(+v || 0).toFixed(2);
-  const NONOP = ["Registration", "Safety / Driver Travel", "Cash Advance", "Other"];
+  const NONOP = ["Registration", "Safety / Driver Travel", "Cash Advance", "Salary Adjustment", "Other"];
   const loads = (x.loads || []).map((l) => { const tm = n(l.TotalMiles) || n(l.LoadedMiles) + n(l.EmptyMiles);
     return { LoadID: String(l.LoadID), SettlementID: id, TruckID: T, WeekStart: wk, Pickup: l.Pickup, Delivery: l.Delivery, PickupDate: l.PickupDate, DeliveryDate: l.DeliveryDate,
       LoadedMiles: n(l.LoadedMiles), EmptyMiles: n(l.EmptyMiles), TotalMiles: tm, Gross: n(l.Gross), DriverPay: n(l.DriverPay),
-      RPM: +(n(l.Gross) / tm).toFixed(3), LoadedRPM: +(n(l.Gross) / n(l.LoadedMiles)).toFixed(3), DeadheadPct: +(n(l.EmptyMiles) / tm).toFixed(4) }; });
+      RPM: tm > 0 ? +(n(l.Gross) / tm).toFixed(3) : null, LoadedRPM: n(l.LoadedMiles) > 0 ? +(n(l.Gross) / n(l.LoadedMiles)).toFixed(3) : null, DeadheadPct: tm > 0 ? +(n(l.EmptyMiles) / tm).toFixed(4) : null }; });
   const fuel = (x.fuel || []).map((f, i) => ({ FuelID: `${id}-F${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Date: f.Date, Product: /def/i.test(f.Product) ? "DEF" : "Diesel", City: f.City, State: f.State,
-    Gallons: n(f.Gallons), RetailAmount: n(f.RetailAmount), InvoiceAmount: n(f.InvoiceAmount), Discount: n(n(f.RetailAmount) - n(f.InvoiceAmount)), PricePerGal: n(f.Gallons) >= 1 ? +(n(f.InvoiceAmount) / n(f.Gallons)).toFixed(3) : null }));
+    Gallons: n(f.Gallons), RetailAmount: n(f.RetailAmount), InvoiceAmount: n(f.InvoiceAmount) || n(f.RetailAmount), Discount: n(n(f.RetailAmount) - (n(f.InvoiceAmount) || n(f.RetailAmount))), PricePerGal: n(f.Gallons) >= 1 ? +((n(f.InvoiceAmount) || n(f.RetailAmount)) / n(f.Gallons)).toFixed(3) : null }));
   const deductions = (x.deductions || []).map((d, i) => ({ DeductionID: `${id}-D${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Category: d.Category, StatementType: d.StatementType, Description: d.Description, Amount: n(d.Amount), IsOperating: !NONOP.includes(d.Category) }));
   const reimbursements = (x.reimbursements || []).map((r, i) => ({ ReimbursementID: `${id}-R${i + 1}`, SettlementID: id, TruckID: T, WeekStart: wk, Description: r.Description, Amount: n(r.Amount) }));
   const rates = loads.map((l) => l.DriverPay / l.TotalMiles).filter(ok).sort((a, b) => a - b);
-  return { settlement: { SettlementID: id, TruckID: T, WeekStart: wk, WeekEnd: x.WeekEnd, CheckDate: x.CheckDate, Trips: +x.Trips || loads.length, Gross: n(x.Gross), DriverPay: n(Math.abs(x.DriverPay)), Reimbursements: n(x.Reimbursements), Deductions: n(x.Deductions), NetPay: n(x.NetPay) },
+  return { settlement: { SettlementID: id, Carrier: String(x.Carrier || "Unknown carrier").trim(), Owner: x.Owner || null, TruckID: T, WeekStart: wk, WeekEnd: x.WeekEnd, CheckDate: x.CheckDate, Trips: +x.Trips || loads.length, Gross: n(x.Gross), DriverPay: n(Math.abs(x.DriverPay)), Reimbursements: n(x.Reimbursements), Deductions: n(x.Deductions), NetPay: n(x.NetPay) },
     truck: { TruckID: T, Driver: x.Driver, DriverRatePerMile: rates.length ? +rates[Math.floor(rates.length / 2)].toFixed(2) : null }, loads, fuel, deductions, reimbursements };
 }
 function checks(doc) {
   const s = doc.settlement, sum = (a, k) => a.reduce((t, r) => t + r[k], 0), c = [];
   const near = (a, b) => Math.abs(a - b) < 0.05;
   c.push(["Loads add up to total gross", near(sum(doc.loads, "Gross"), s.Gross), `${money(sum(doc.loads, "Gross"), 2)} vs ${money(s.Gross, 2)}`]);
-  c.push(["Driver pay matches loads", near(sum(doc.loads, "DriverPay"), s.DriverPay), `${money(sum(doc.loads, "DriverPay"), 2)} vs ${money(s.DriverPay, 2)}`]);
+  if (doc.loads.length) c.push(["Driver pay matches loads (a mismatch is flagged, not an error)", near(sum(doc.loads, "DriverPay"), s.DriverPay), `${money(sum(doc.loads, "DriverPay"), 2)} vs ${money(s.DriverPay, 2)}`, true]);
   c.push(["Deduction lines add up", near(sum(doc.deductions, "Amount"), s.Deductions), `${money(sum(doc.deductions, "Amount"), 2)} vs ${money(s.Deductions, 2)}`]);
   c.push(["Reimbursements add up", near(sum(doc.reimbursements, "Amount"), s.Reimbursements), `${money(sum(doc.reimbursements, "Amount"), 2)} vs ${money(s.Reimbursements, 2)}`]);
   const calc = s.Gross - s.DriverPay + s.Reimbursements - s.Deductions;
@@ -704,29 +883,41 @@ async function handleFiles(files) {
       box.innerHTML = `<b>${esc(file.name)}</b> — Claude is reading the statement…`;
       const raw = await sample.json(prompt(text), { modelTier: "default" });
       const doc = normalize(raw), c = checks(doc), s = doc.settlement, exists = D.settlements.some((x) => x.SettlementID === s.SettlementID);
-      pending.set(key, doc);
-      box.innerHTML = `<b>${esc(file.name)}</b> → <b>${esc(s.SettlementID)}</b> · Truck ${esc(s.TruckID)} · ${esc(doc.truck.Driver)} · ${esc(s.WeekStart)} → ${esc(s.WeekEnd)}<br>
+      const hardOk = c.every((x) => x[1] || x[3]);
+      pending.set(key, doc); box.dataset.pass = hardOk ? "1" : "0"; box.dataset.key = key;
+      box.innerHTML = `<b>${esc(file.name)}</b> → <b>${esc(s.SettlementID)}</b> · ${esc(s.Carrier)} · Truck ${esc(s.TruckID)} · ${esc(doc.truck.Driver)} · ${esc(s.WeekStart)} → ${esc(s.WeekEnd)}<br>
         ${doc.loads.length} loads · ${num(doc.loads.reduce((t, l) => t + l.TotalMiles, 0), 1)} mi · gross ${money(s.Gross, 2)} · deductions ${money(s.Deductions, 2)} · net ${money(s.NetPay, 2)} · ${doc.fuel.length} fuel lines · ${doc.deductions.length} deduction lines
-        <ul style="margin:8px 0">${c.map(([l, pass, d]) => `<li><span class="${pass ? "ok" : "bad"}">${pass ? "✓" : "✗"}</span> ${l} <span class="muted">(${d})</span></li>`).join("")}</ul>
-        ${c.every((x) => x[1]) ? "" : `<p class="bad">Some totals don't match — the PDF may have been misread. Save only if you're sure, or try again.</p>`}
+        <ul style="margin:8px 0">${c.map(([l, pass, d, soft]) => `<li><span class="${pass ? "ok" : soft ? "" : "bad"}">${pass ? "✓" : soft ? "⚠" : "✗"}</span> ${l} <span class="muted">(${d})</span></li>`).join("")}</ul>
+        ${hardOk ? "" : `<p class="bad">Some totals don't match — the PDF may have been misread. Save only if you're sure, or try again.</p>`}
         <button class="btn primary" data-save="${key}">${exists ? "Replace " + esc(s.SettlementID) + " in database" : "Save to database"}</button> <button class="btn" data-discard="${key}">Discard</button>`;
+      updateSaveAll();
     } catch (err) {
       box.innerHTML = `<b>${esc(file.name)}</b> — <span class="bad">couldn't read it: ${esc(err.message || err.code || err)}</span>`;
     }
   }
 }
-$("#uploadArea").addEventListener("click", async (e) => {
-  const sv = e.target.closest("button[data-save]"), dc = e.target.closest("button[data-discard]");
-  if (dc) { pending.delete(dc.dataset.discard); dc.closest(".preview").remove(); return; }
-  if (!sv) return;
-  const doc = pending.get(sv.dataset.save); sv.disabled = true; sv.textContent = "Saving…";
+async function saveOne(key, btn) {
+  const doc = pending.get(key); if (!doc) return false;
+  btn.disabled = true; btn.textContent = "Saving…";
   try {
     await db.doc("settlements/" + doc.settlement.SettlementID.replace(/[^A-Za-z0-9_\-.~:@+]/g, "-")).set(doc);
-    pending.delete(sv.dataset.save); sv.closest(".preview").innerHTML = `<span class="ok">✓ Saved ${esc(doc.settlement.SettlementID)}</span> — the dashboard has been updated.`;
+    pending.delete(key); btn.closest(".preview").innerHTML = `<span class="ok">✓ Saved ${esc(doc.settlement.SettlementID)}</span> — truck ${esc(doc.settlement.TruckID)}, ${esc(WLABEL[doc.settlement.WeekStart] || weekLabel(doc.settlement.WeekStart))}.`;
+    curWeek = doc.settlement.WeekStart; return true;
   } catch (err) {
-    sv.disabled = false; sv.textContent = "Retry save";
-    sv.insertAdjacentHTML("afterend", ` <span class="bad">${err.code === "invalid_argument" ? "You don't have permission to save here." : esc(err.message || err.code)}</span>`);
-  }
+    btn.disabled = false; btn.textContent = "Retry save";
+    btn.insertAdjacentHTML("afterend", ` <span class="bad">${err.code === "invalid_argument" ? "You don't have permission to save here." : esc(err.message || err.code)}</span>`);
+    return false;
+  } finally { updateSaveAll(); }
+}
+function updateSaveAll() { $("#saveAllBar").style.display = $$("#uploadArea .preview[data-pass='1'] button[data-save]").length > 1 ? "" : "none"; }
+const $$ = (q) => [...document.querySelectorAll(q)];
+$("#saveAll").addEventListener("click", async () => {
+  for (const btn of $$("#uploadArea .preview[data-pass='1'] button[data-save]")) await saveOne(btn.dataset.save, btn);
+});
+$("#uploadArea").addEventListener("click", async (e) => {
+  const sv = e.target.closest("button[data-save]"), dc = e.target.closest("button[data-discard]");
+  if (dc) { pending.delete(dc.dataset.discard); dc.closest(".preview").remove(); updateSaveAll(); return; }
+  if (sv) saveOne(sv.dataset.save, sv);
 });
 $("#pickBtn").addEventListener("click", () => $("#pdfInput").click());
 $("#pdfInput").addEventListener("change", (e) => { handleFiles([...e.target.files]); e.target.value = ""; });
