@@ -1,0 +1,56 @@
+// ===== Fleet Settlements - DAX measures =====
+// Paste each block into Power BI: Modeling > New measure (put them all on a "_Measures" table).
+// Relationships (Model view): DimTruck[TruckID] 1-* each Fact table's [TruckID];
+//                             FactSettlement[SettlementID] 1-* FactLoad/FactFuel/FactDeduction/FactReimbursement[SettlementID]
+// Also create a Week table:  Week = DISTINCT(FactSettlement[WeekStart])  and relate it to every Fact[WeekStart].
+
+Gross = SUM(FactLoad[Gross])
+Total Miles = SUM(FactLoad[TotalMiles])
+Loaded Miles = SUM(FactLoad[LoadedMiles])
+Empty Miles = SUM(FactLoad[EmptyMiles])
+Driver Pay = SUM(FactLoad[DriverPay])
+Loads = COUNTROWS(FactLoad)
+
+Deadhead % = DIVIDE([Empty Miles], [Total Miles])
+RPM = DIVIDE([Gross], [Total Miles])
+Loaded RPM = DIVIDE([Gross], [Loaded Miles])
+
+Diesel Gallons = CALCULATE(SUM(FactFuel[Gallons]), FactFuel[Product] = "Diesel")
+Fuel Cost = SUM(FactFuel[InvoiceAmount])
+Fuel Card Savings = SUM(FactFuel[Discount])
+MPG = DIVIDE([Total Miles], [Diesel Gallons])
+Price per Gallon = DIVIDE(CALCULATE(SUM(FactFuel[InvoiceAmount]), FactFuel[Product] = "Diesel"), [Diesel Gallons])
+Fuel per Mile = DIVIDE([Fuel Cost], [Total Miles])
+
+Deductions = SUM(FactDeduction[Amount])
+Operating Deductions = CALCULATE([Deductions], FactDeduction[IsOperating] = TRUE())
+One-time Charges = CALCULATE([Deductions], FactDeduction[IsOperating] = FALSE())
+Reimbursements = SUM(FactReimbursement[Amount])
+Maintenance = CALCULATE([Deductions], FactDeduction[Category] = "Maintenance")
+Tolls = CALCULATE([Deductions], FactDeduction[Category] = "Tolls")
+Company Fee = CALCULATE([Deductions], FactDeduction[Category] = "Company Fee")
+
+Operating Cost = [Driver Pay] + [Operating Deductions]
+CPM = DIVIDE([Operating Cost], [Total Miles])
+Operating Profit = [Gross] - [Operating Cost]
+Operating Margin % = DIVIDE([Operating Profit], [Gross])
+Profit per Mile = [RPM] - [CPM]
+Net Pay = SUM(FactSettlement[NetPay])
+
+Maintenance per Mile = DIVIDE([Maintenance], [Total Miles])
+Tolls per Mile = DIVIDE([Tolls], [Total Miles])
+Driver Pay % = DIVIDE([Driver Pay], [Gross])
+Fuel % of Gross = DIVIDE([Fuel Cost], [Gross])
+Category % of Gross = DIVIDE([Deductions], [Gross])   // use with FactDeduction[Category] on the legend
+
+Weeks = DISTINCTCOUNT(FactLoad[WeekStart])
+Gross per Week = DIVIDE([Gross], [Weeks])
+Miles per Week = DIVIDE([Total Miles], [Weeks])
+
+// ----- Red-flag helpers (use for conditional formatting: Format > Background colour > Field value) -----
+Flag Colour Deadhead = IF([Deadhead %] > 0.15, "#d03b3b", "#0ca30c")
+Flag Colour MPG = IF([MPG] < 6.5, "#d03b3b", "#0ca30c")
+Flag Colour Profit = IF([Operating Profit] < 0, "#d03b3b", "#0ca30c")
+Flag Colour Load RPM = IF([RPM] < CALCULATE([CPM], ALL(FactLoad)), "#d03b3b", BLANK())
+Red Flag Count =
+    ( [Deadhead %] > 0.15 ) + ( [MPG] < 6.5 ) + ( [Operating Profit] < 0 ) + ( [Maintenance per Mile] > 0.10 )

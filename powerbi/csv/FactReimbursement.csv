@@ -1,0 +1,5 @@
+ReimbursementID,SettlementID,TruckID,WeekStart,Description,Amount
+BL-001024-R1,BL-001024,777,2026-10-12,Rodrick approve,1500.0
+BL-001024-R2,BL-001024,777,2026-10-12,"Net pay for 7777, 10/05-10/11",133.06
+BL-001024-R3,BL-001024,777,2026-10-12,"Net pay for 777, 10/05-10/11",1160.61
+BL-001050-R1,BL-001050,7777,2026-10-19,For registration,2643.04

@@ -28,6 +28,14 @@ one-truck owner-operator. See `PROMPT.md` for the full product spec this
 prototype implements a slice of, and for what's still missing to get real
 fuel-economy numbers and a true owner P&L.
 
+## October 2026 report + Power BI package
+
+- `report/index.html` — standalone interactive report for the Oct 12–25 settlements
+  (trucks 777 & 7777): KPIs, ranked red flags, truck-vs-truck scorecard, % of gross,
+  RPM vs CPM, MPG, deadhead and per-load rate charts. Open it directly in a browser.
+- `powerbi/` — the same data as a Power BI / Microsoft Fabric star schema (xlsx + CSV),
+  DAX measures and a step-by-step build guide. See `powerbi/README.md`.
+
 ## Run it
 
 No build step, no server required — it's a static page.

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleet Report · Oct 12–25, 2026 · Trucks 777 & 7777</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f3f0; --surface-1: #fcfcfb; --surface-2: #f0efec; --border: #e2e0da;
+  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
+  --grid: #e8e6e1;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --good-text: #006300; --critical-text: #b02a2a;
+  --rest: #c9c7c0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86; --grid: #2c2c29;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --good-text: #3fc63f; --critical-text: #f07a7a; --rest: #4a4a45;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
+  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86; --grid: #2c2c29;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good-text: #3fc63f; --critical-text: #f07a7a; --rest: #4a4a45;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+.sub { color: var(--text-secondary); margin: 2px 0 0; }
+.muted { color: var(--text-muted); font-size: 12px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+.seg button { border: 0; background: transparent; color: var(--text-secondary); padding: 7px 12px; font: inherit; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.grid { display: grid; gap: 14px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.kpi .label { color: var(--text-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.kpi .value { font-size: 26px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.kpi .note { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.two { grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); margin-bottom: 14px; }
+.full { margin-bottom: 14px; }
+.flags { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.flag { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px; border-radius: 10px; background: var(--surface-2); }
+.flag .icon { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 14px; }
+.flag.critical .icon { background: var(--critical); }
+.flag.serious .icon { background: var(--serious); }
+.flag.warning .icon { background: var(--warning); color: #111; }
+.flag .sev { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+.flag .title { font-weight: 600; }
+.flag .body { color: var(--text-secondary); margin-top: 2px; }
+.flag .amt { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+td.left, th.left { text-align: left; }
+.tablewrap { overflow-x: auto; }
+.win { color: var(--good-text); font-weight: 650; }
+.lose { color: var(--critical-text); font-weight: 650; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 4px; color: var(--text-secondary); font-size: 12px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--text-secondary); font-size: 11px; font-family: inherit; }
+svg .val { fill: var(--text-primary); font-weight: 600; }
+svg .axis line, svg .gridline { stroke: var(--grid); }
+svg .ref { stroke: var(--critical); stroke-dasharray: 4 3; stroke-width: 1.5; }
+svg .bar { transition: opacity .12s; }
+svg .hit { fill: transparent; cursor: default; }
+svg g.mark:hover .bar { opacity: .8; }
+#tip { position: fixed; pointer-events: none; background: var(--text-primary); color: var(--surface-1); padding: 8px 10px; border-radius: 8px;
+  font-size: 12px; line-height: 1.4; max-width: 280px; opacity: 0; transition: opacity .08s; z-index: 10; }
+#tip b { font-weight: 650; }
+.recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 10px; }
+.rec { background: var(--surface-2); border-radius: 10px; padding: 12px; }
+.rec b { display: block; margin-bottom: 4px; }
+.rec p { margin: 0; color: var(--text-secondary); }
+.pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--surface-2); color: var(--text-secondary); margin-left: 6px; }
+.pill.bad { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-text); }
+details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px; }
+#oneTime td:nth-child(4), #oneTime td:nth-child(3) { white-space: normal; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div id="tip" role="tooltip"></div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fleet Report — Trucks 777 &amp; 7777</h1>
+      <p class="sub">Wenze Transport Services settlements BL-001023, -001024, -001050, -001051 · weeks of Oct 12 &amp; Oct 19, 2026</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Week filter" id="weekSeg">
+        <button data-week="all" aria-pressed="true">Both weeks</button>
+        <button data-week="2026-10-12" aria-pressed="false">Oct 12–18</button>
+        <button data-week="2026-10-19" aria-pressed="false">Oct 19–25</button>
+      </div>
+      <div class="seg" role="group" aria-label="Theme" id="themeSeg">
+        <button data-theme="auto" aria-pressed="true">Auto</button>
+        <button data-theme="light" aria-pressed="false">Light</button>
+        <button data-theme="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="grid kpis" id="kpis"></section>
+
+  <section class="card full">
+    <h2>🚩 Red flags — fix or question these first</h2>
+    <p class="muted">Ranked by dollar impact. All four statements were checked to foot (gross − driver pay + reimbursements − deductions = net pay); they do.</p>
+    <ul class="flags" id="flags"></ul>
+  </section>
+
+  <section class="card full">
+    <h2>Truck vs truck scorecard</h2>
+    <p class="muted"><span class="win">Green</span> = better truck on that line, <span class="lose">red</span> = worse. Operating = excludes one-time registration/travel charges and reimbursements.</p>
+    <div class="tablewrap"><table id="scorecard"></table></div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Where each $1 of gross goes</h2>
+      <p class="muted">Operating costs as % of gross revenue, per truck. Whatever is left is operating profit.</p>
+      <div class="legend" id="pctLegend"></div>
+      <div id="pctChart"></div>
+    </div>
+    <div class="card">
+      <h2>Revenue per mile vs cost per mile</h2>
+      <p class="muted">RPM above CPM = the truck made money that week. CPM here is operating cost ÷ total miles (= breakeven RPM).</p>
+      <div class="legend" id="rpmLegend"></div>
+      <div id="rpmChart"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Fuel economy (MPG) &amp; fuel cost per mile</h2>
+      <p class="muted">Diesel gallons only (DEF excluded). Red dashed line = 6.5 MPG target. Weekly MPG swings because a fill-up late in a week fuels next week's miles — trust the 2-week number.</p>
+      <div class="legend" id="mpgLegend"></div>
+      <div id="mpgChart"></div>
+    </div>
+    <div class="card">
+      <h2>Gross revenue by week</h2>
+      <p class="muted">Which truck is bringing in less money — and how many miles it took.</p>
+      <div class="legend" id="grossLegend"></div>
+      <div id="grossChart"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Deadhead % by load</h2>
+      <p class="muted">Empty miles ÷ total miles. Red dashed line = 15% threshold.</p>
+      <div class="legend" id="dhLegend"></div>
+      <div id="dhChart"></div>
+    </div>
+    <div class="card">
+      <h2>Rate per mile by load</h2>
+      <p class="muted">Gross ÷ total miles (incl. deadhead). Red dashed line = fleet operating CPM (breakeven) — loads below it lose money.</p>
+      <div class="legend" id="lrLegend"></div>
+      <div id="lrChart"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>Maintenance &amp; tolls per mile</h2>
+      <p class="muted">Normalised by miles so a truck that ran more isn't penalised.</p>
+      <div class="legend" id="mtLegend"></div>
+      <div id="mtChart"></div>
+    </div>
+    <div class="card">
+      <h2>Non-operating items (charged / credited)</h2>
+      <p class="muted">Old or one-off charges that hit these two weeks. These are what wiped out the Oct 12–18 check for 7777 ($8.08 net).</p>
+      <div class="tablewrap"><table id="oneTime"></table></div>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>Every load</h2>
+    <div class="tablewrap"><table id="loadsTable"></table></div>
+  </section>
+
+  <section class="card full">
+    <h2>Fuel stops</h2>
+    <p class="muted">Card discount = retail − invoice. Price/gal is what you were actually charged.</p>
+    <div class="tablewrap"><table id="fuelTable"></table></div>
+  </section>
+
+  <section class="card full">
+    <h2>What I'd add if this were my fleet — and why</h2>
+    <div class="recs" id="recs"></div>
+  </section>
+
+  <footer>Built from the four PDF settlements. Data model + Power BI/Fabric files are in <code>powerbi/</code>. Regenerate with <code>python3 powerbi/build_model.py</code>.</footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(() => {
+const D = window.FLEET;
+const TRUCKS = ["7777", "777"];
+const TC = { "7777": "var(--s1)", "777": "var(--s2)" };
+const DRIVER = { "7777": "Robert", "777": "Damarion" };
+const WEEKS = ["2026-10-12", "2026-10-19"];
+const WLABEL = { "2026-10-12": "Oct 12–18", "2026-10-19": "Oct 19–25" };
+let week = "all";
+
+const $ = (s) => document.querySelector(s);
+const money = (v, d = 0) => (v < 0 ? "−" : "") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pm = (v) => "$" + v.toFixed(2);
+const pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+const num = (v, d = 0) => v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+
+// ---- metrics for the current filter (recomputed client-side from facts) ----
+function m(truck) {
+  const f = (r) => (!truck || r.TruckID === truck) && (week === "all" || r.WeekStart === week);
+  const L = D.loads.filter(f), F = D.fuel.filter(f), X = D.deductions.filter(f), R = D.reimbursements.filter(f), S = D.settlements.filter(f);
+  const sum = (a, k) => a.reduce((t, r) => t + r[k], 0);
+  const miles = sum(L, "TotalMiles"), loaded = sum(L, "LoadedMiles"), empty = sum(L, "EmptyMiles"), gross = sum(L, "Gross"), dpay = sum(L, "DriverPay");
+  const cat = {}; X.forEach((d) => (cat[d.Category] = (cat[d.Category] || 0) + d.Amount));
+  const dsl = F.filter((x) => x.Product === "Diesel"), def = F.filter((x) => x.Product === "DEF");
+  const dGal = sum(dsl, "Gallons"), dCost = sum(dsl, "InvoiceAmount"), defCost = sum(def, "InvoiceAmount");
+  const op = dpay + X.filter((d) => d.IsOperating).reduce((t, d) => t + d.Amount, 0);
+  const oneTime = X.filter((d) => !d.IsOperating).reduce((t, d) => t + d.Amount, 0);
+  return { L, F, X, R, S, miles, loaded, empty, gross, dpay, cat, dGal, dCost, defCost, op, oneTime,
+    reimb: sum(R, "Amount"), net: sum(S, "NetPay"), disc: sum(F, "Discount"),
+    rpm: gross / miles, lrpm: gross / loaded, cpm: op / miles, dh: empty / miles, mpg: miles / dGal,
+    fpm: (dCost + defCost) / miles, profit: gross - op, margin: (gross - op) / gross,
+    maint: cat["Maintenance"] || 0, tolls: cat["Tolls"] || 0 };
+}
+
+// ---- tooltip ----
+const tip = $("#tip");
+function bindTip(el, html) {
+  el.addEventListener("mousemove", (e) => { tip.innerHTML = html; tip.style.opacity = 1;
+    const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = x + "px"; tip.style.top = e.clientY + 14 + "px"; });
+  el.addEventListener("mouseleave", () => (tip.style.opacity = 0));
+}
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function text(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
+function legend(id, items) { $(id).innerHTML = items.map(([c, l]) => `<span><span class="swatch" style="background:${c}"></span>${l}</span>`).join(""); }
+// bar with 4px rounded data-end, square at baseline
+function barPath(x, y, w, h, horiz) {
+  const r = Math.min(4, (horiz ? h : w) / 2, horiz ? w : h);
+  if (horiz) return `M${x},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x} Z`;
+  return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+}
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+
+// grouped vertical bars. groups: [{label, bars:[{value, color, tip, label}]}]
+function vbars(target, groups, { fmt, ref, refLabel, height = 240, max } = {}) {
+  const W = 560, H = height, P = { l: 44, r: 8, t: 18, b: 34 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  const all = groups.flatMap((g) => g.bars.map((b) => b.value));
+  const ymax = max || niceMax(Math.max(...all, ref || 0) * 1.08);
+  const y = (v) => P.t + (H - P.t - P.b) * (1 - v / ymax);
+  for (let i = 0; i <= 4; i++) { const v = (ymax / 4) * i; el("line", { x1: P.l, x2: W - P.r, y1: y(v), y2: y(v), class: "gridline" }, svg); text(svg, P.l - 6, y(v) + 4, fmt(v, true), { "text-anchor": "end" }); }
+  const gw = (W - P.l - P.r) / groups.length;
+  groups.forEach((g, gi) => {
+    const n = g.bars.length, bw = Math.min(42, (gw * 0.7) / n), x0 = P.l + gi * gw + (gw - (bw * n + 2 * (n - 1))) / 2;
+    g.bars.forEach((b, bi) => {
+      const x = x0 + bi * (bw + 2), h = Math.max(0, y(0) - y(b.value));
+      const gm = el("g", { class: "mark" }, svg);
+      el("path", { d: barPath(x, y(b.value), bw, h), fill: b.color, class: "bar" }, gm);
+      if (b.showLabel !== false) text(gm, x + bw / 2, y(b.value) - 5, fmt(b.value), { "text-anchor": "middle", class: "val" });
+      el("rect", { x: x - 1, y: P.t, width: bw + 2, height: H - P.t - P.b, class: "hit" }, gm);
+      bindTip(gm, b.tip);
+    });
+    text(svg, P.l + gi * gw + gw / 2, H - P.b + 16, g.label, { "text-anchor": "middle" });
+  });
+  if (ref != null) { el("line", { x1: P.l, x2: W - P.r, y1: y(ref), y2: y(ref), class: "ref" }, svg); text(svg, W - P.r, y(ref) - 5, refLabel, { "text-anchor": "end", style: "fill:var(--critical-text)" }); }
+  el("line", { x1: P.l, x2: W - P.r, y1: y(0), y2: y(0), stroke: "var(--text-muted)" }, svg);
+  $(target).replaceChildren(svg);
+}
+
+// horizontal bars, one row per item
+function hbars(target, rows, { fmt, ref, refLabel, max }) {
+  const W = 560, rowH = 24, P = { l: 178, r: 56, t: 20, b: 8 }, H = P.t + P.b + rows.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  const xmax = max || niceMax(Math.max(...rows.map((r) => r.value), ref || 0) * 1.05);
+  const x = (v) => P.l + (W - P.l - P.r) * (v / xmax);
+  rows.forEach((r, i) => {
+    const yy = P.t + i * rowH, gm = el("g", { class: "mark" }, svg);
+    text(gm, P.l - 8, yy + rowH / 2 + 4, r.label, { "text-anchor": "end" });
+    el("path", { d: barPath(P.l, yy + 4, Math.max(1, x(r.value) - P.l), rowH - 8, true), fill: r.color, class: "bar" }, gm);
+    text(gm, x(r.value) + 6, yy + rowH / 2 + 4, fmt(r.value), { class: "val" });
+    el("rect", { x: 0, y: yy, width: W, height: rowH, class: "hit" }, gm);
+    bindTip(gm, r.tip);
+  });
+  if (ref != null) { el("line", { x1: x(ref), x2: x(ref), y1: P.t - 6, y2: H - P.b, class: "ref" }, svg); text(svg, x(ref) + 4, P.t - 8, refLabel, { style: "fill:var(--critical-text)" }); }
+  el("line", { x1: P.l, x2: P.l, y1: P.t - 4, y2: H - P.b, stroke: "var(--text-muted)" }, svg);
+  $(target).replaceChildren(svg);
+}
+
+// 100%-of-gross stacked horizontal bars
+const CATS = [
+  ["Driver pay", "var(--s1)", (x) => x.dpay],
+  ["Fuel + DEF", "var(--s2)", (x) => x.cat["Fuel"] || 0],
+  ["Company fee 12%", "var(--s3)", (x) => x.cat["Company Fee"] || 0],
+  ["Insurance/trailer/ELD/IFTA", "var(--s4)", (x) => x.cat["Fixed Weekly"] || 0],
+  ["Tolls + PrePass", "var(--s5)", (x) => x.cat["Tolls"] || 0],
+  ["Maintenance", "var(--s7)", (x) => x.cat["Maintenance"] || 0],
+  ["Driver bonus", "var(--s6)", (x) => x.cat["Driver Bonus"] || 0],
+  ["Operating profit", "var(--rest)", (x) => Math.max(0, x.profit)],
+];
+function pctChart(ms) {
+  legend("#pctLegend", CATS.map(([l, c]) => [c, l]));
+  const W = 560, rowH = 46, P = { l: 92, r: 8, t: 8, b: 22 }, H = P.t + P.b + ms.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  const span = Math.max(1, ...ms.map(([, mm]) => (mm.op + Math.max(0, mm.profit)) / mm.gross));
+  const x = (f) => P.l + (W - P.l - P.r) * (f / span);
+  [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5].filter((f) => f <= span + 1e-9).forEach((f) => { el("line", { x1: x(f), x2: x(f), y1: P.t, y2: H - P.b, class: "gridline" }, svg); text(svg, x(f), H - 6, pct(f, 0), { "text-anchor": "middle" }); });
+  ms.forEach(([name, mm], i) => {
+    const yy = P.t + i * rowH + 6, h = rowH - 16; let acc = 0;
+    text(svg, P.l - 8, yy + h / 2 + 4, name, { "text-anchor": "end", class: "val" });
+    if (mm.profit < 0) text(svg, P.l - 8, yy + h / 2 + 17, "loss " + money(mm.profit), { "text-anchor": "end", style: "fill:var(--critical-text)" });
+    CATS.forEach(([l, c, fn]) => {
+      const v = fn(mm), f = v / mm.gross; if (f <= 0) return;
+      const gm = el("g", { class: "mark" }, svg), x0 = x(acc), w = Math.max(0, x(acc + f) - x0 - 2);
+      el("rect", { x: x0, y: yy, width: w, height: h, fill: c, class: "bar", rx: 2 }, gm);
+      if (f >= 0.08) text(gm, x0 + w / 2, yy + h / 2 + 4, pct(f, 0), { "text-anchor": "middle", style: "fill:#fff;font-weight:600" });
+      bindTip(gm, `<b>${name} · ${l}</b><br>${money(v, 2)} = ${pct(f)} of gross<br>${pm(v / mm.miles)} per mile`);
+      acc += f;
+    });
+  });
+  if (span > 1) el("line", { x1: x(1), x2: x(1), y1: P.t - 4, y2: H - P.b, class: "ref" }, svg);
+  $("#pctChart").replaceChildren(svg);
+}
+
+// ---- render ----
+function render() {
+  const fleet = m(), byT = Object.fromEntries(TRUCKS.map((t) => [t, m(t)]));
+  const label = week === "all" ? "2 weeks" : WLABEL[week];
+
+  // KPIs
+  const k = [
+    ["Gross revenue", money(fleet.gross), `${fleet.L.length} loads · ${label}`],
+    ["Total miles", num(fleet.miles), `${num(fleet.loaded)} loaded · ${num(fleet.empty)} empty`],
+    ["RPM", pm(fleet.rpm), `Loaded RPM ${pm(fleet.lrpm)}`],
+    ["CPM (operating)", pm(fleet.cpm), "= breakeven rate per mile"],
+    ["Operating profit", money(fleet.profit), `${pct(fleet.margin)} margin · ${pm(fleet.profit / fleet.miles)}/mi`],
+    ["Net pay deposited", money(fleet.net, 2), `after ${money(fleet.oneTime)} one-time charges, +${money(fleet.reimb)} reimb.`],
+    ["Deadhead", pct(fleet.dh), `${num(fleet.empty)} empty miles`],
+    ["MPG", fleet.mpg.toFixed(2), `${num(fleet.dGal, 0)} gal diesel · ${pm(fleet.dCost / fleet.dGal)}/gal`],
+    ["Fuel per mile", pm(fleet.fpm), `${pct((fleet.dCost + fleet.defCost) / fleet.gross)} of gross`],
+  ];
+  $("#kpis").innerHTML = k.map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
+
+  // Scorecard: [label, fn, fmt, higherIsBetter]
+  const rows = [
+    ["Driver", (x, t) => DRIVER[t] + (t === "777" ? " ($0.65→$0.70/mi)" : " ($0.75/mi)"), null],
+    ["Loads", (x) => x.L.length, (v) => v, null],
+    ["Gross revenue", (x) => x.gross, (v) => money(v), true],
+    ["Total miles", (x) => x.miles, (v) => num(v), true],
+    ["Gross per week", (x) => x.gross / (week === "all" ? 2 : 1), (v) => money(v), true],
+    ["Miles per week", (x) => x.miles / (week === "all" ? 2 : 1), (v) => num(v), true],
+    ["RPM (all miles)", (x) => x.rpm, pm, true],
+    ["Loaded RPM", (x) => x.lrpm, pm, true],
+    ["CPM (operating)", (x) => x.cpm, pm, false],
+    ["Operating profit", (x) => x.profit, (v) => money(v), true],
+    ["Operating profit / mile", (x) => x.profit / x.miles, pm, true],
+    ["Operating margin", (x) => x.margin, pct, true],
+    ["Deadhead %", (x) => x.dh, pct, false],
+    ["MPG", (x) => x.mpg, (v) => v.toFixed(2), true],
+    ["Fuel + DEF per mile", (x) => x.fpm, pm, false],
+    ["Fuel % of gross", (x) => (x.dCost + x.defCost) / x.gross, pct, false],
+    ["Driver pay % of gross", (x) => x.dpay / x.gross, pct, false],
+    ["Maintenance $", (x) => x.maint, (v) => money(v, 2), false],
+    ["Maintenance per mile", (x) => x.maint / x.miles, (v) => "$" + v.toFixed(3), false],
+    ["Tolls per mile", (x) => x.tolls / x.miles, (v) => "$" + v.toFixed(3), false],
+    ["One-time charges", (x) => x.oneTime, (v) => money(v, 2), false],
+    ["Reimbursements", (x) => x.reimb, (v) => money(v, 2), true],
+    ["Net pay deposited", (x) => x.net, (v) => money(v, 2), true],
+  ];
+  let h = `<thead><tr><th>Metric</th>${TRUCKS.map((t) => `<th><span class="swatch" style="background:${TC[t]}"></span>Truck ${t}</th>`).join("")}<th>Fleet</th></tr></thead><tbody>`;
+  rows.forEach(([l, fn, fmt, hib]) => {
+    const vals = TRUCKS.map((t) => fn(byT[t], t));
+    const fv = fmt ? fmt(fn(fleet, null) ?? 0) : "";
+    h += `<tr><td>${l}</td>${vals.map((v, i) => {
+      let cls = "";
+      if (hib != null && vals[0] !== vals[1]) { const best = hib ? Math.max(...vals) : Math.min(...vals); cls = v === best ? "win" : "lose"; }
+      return `<td class="${cls}">${fmt ? fmt(v) : v}</td>`;
+    }).join("")}<td>${l === "Driver" ? "" : fv}</td></tr>`;
+  });
+  $("#scorecard").innerHTML = h + "</tbody>";
+
+  pctChart(TRUCKS.map((t) => [`Truck ${t}`, byT[t]]).concat([["Fleet", fleet]]));
+
+  // RPM vs CPM per truck-week
+  const tw = (t, w) => { const save = week; week = w; const r = m(t); week = save; return r; };
+  const showWeeks = week === "all" ? WEEKS : [week];
+  legend("#rpmLegend", [["var(--s3)", "RPM (revenue/mile)"], ["var(--s8)", "CPM (cost/mile)"]]);
+  vbars("#rpmChart", TRUCKS.flatMap((t) => showWeeks.map((w) => { const x = tw(t, w); return { label: `${t} · ${WLABEL[w]}`, bars: [
+    { value: x.rpm, color: "var(--s3)", tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>RPM ${pm(x.rpm)} · CPM ${pm(x.cpm)}<br>Profit/mi ${pm(x.rpm - x.cpm)} → ${money(x.profit)}` },
+    { value: x.cpm, color: "var(--s8)", tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>CPM ${pm(x.cpm)}: driver ${pm(x.dpay / x.miles)}, fuel ${pm((x.cat.Fuel || 0) / x.miles)}, other ${pm((x.op - x.dpay - (x.cat.Fuel || 0)) / x.miles)}` },
+  ] }; })), { fmt: (v) => "$" + v.toFixed(2) });
+
+  // MPG
+  legend("#mpgLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
+  const mpgGroups = (week === "all" ? [...WEEKS, "all"] : [week]).map((w) => ({ label: w === "all" ? "2-week total" : WLABEL[w], bars: TRUCKS.map((t) => {
+    const x = w === "all" ? byT[t] : tw(t, w);
+    return { value: x.mpg, color: TC[t], tip: `<b>Truck ${t} · ${w === "all" ? "2 weeks" : WLABEL[w]}</b><br>${x.mpg.toFixed(2)} MPG<br>${num(x.miles)} mi ÷ ${num(x.dGal, 1)} gal diesel<br>Fuel+DEF ${pm(x.fpm)}/mi · ${pm(x.dCost / x.dGal)}/gal` };
+  }) }));
+  vbars("#mpgChart", mpgGroups, { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 MPG target", max: 9 });
+
+  // Gross
+  legend("#grossLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
+  vbars("#grossChart", showWeeks.map((w) => ({ label: WLABEL[w], bars: TRUCKS.map((t) => { const x = tw(t, w);
+    return { value: x.gross, color: TC[t], tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>Gross ${money(x.gross)} · ${x.L.length} loads<br>${num(x.miles)} miles · RPM ${pm(x.rpm)}` }; }) })),
+    { fmt: (v, axis) => axis ? "$" + (v / 1000).toFixed(0) + "k" : "$" + (v / 1000).toFixed(1) + "k" });
+
+  // Deadhead per load
+  const loads = fleet.L.slice();
+  legend("#dhLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
+  hbars("#dhChart", loads.slice().sort((a, b) => b.DeadheadPct - a.DeadheadPct).map((l) => ({ label: `${l.TruckID} · ${l.Pickup.split(",")[0]} → ${l.Delivery.split(",")[0]}`.slice(0, 32), value: l.DeadheadPct, color: TC[l.TruckID],
+    tip: `<b>Load ${l.LoadID} (truck ${l.TruckID})</b><br>${l.Pickup} → ${l.Delivery}<br>${num(l.EmptyMiles, 1)} empty / ${num(l.TotalMiles, 1)} total = ${pct(l.DeadheadPct)}` })),
+    { fmt: (v) => pct(v, 0), ref: 0.15, refLabel: "15%" });
+
+  // Load RPM
+  legend("#lrLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
+  hbars("#lrChart", loads.slice().sort((a, b) => a.RPM - b.RPM).map((l) => ({ label: `${l.TruckID} · ${l.Pickup.split(",")[0]} → ${l.Delivery.split(",")[0]}`.slice(0, 32), value: l.RPM, color: TC[l.TruckID],
+    tip: `<b>Load ${l.LoadID} (truck ${l.TruckID})</b><br>${l.Pickup} → ${l.Delivery}<br>${money(l.Gross)} ÷ ${num(l.TotalMiles, 1)} mi = ${pm(l.RPM)}/mi<br>Loaded RPM ${pm(l.LoadedRPM)} · driver got ${money(l.DriverPay, 2)} (${pct(l.DriverPay / l.Gross, 0)} of gross)` })),
+    { fmt: pm, ref: fleet.cpm, refLabel: "CPM " + pm(fleet.cpm) });
+
+  // Maintenance & tolls per mile
+  legend("#mtLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
+  vbars("#mtChart", [["Maintenance / mi", "maint"], ["Tolls / mi", "tolls"], ["Fuel+DEF / mi ÷ 10", "fpm10"]].map(([lab, key]) => ({ label: lab, bars: TRUCKS.map((t) => {
+    const x = byT[t], v = key === "fpm10" ? x.fpm / 10 : x[key] / x.miles;
+    return { value: v, color: TC[t], tip: `<b>Truck ${t}</b><br>${lab}: $${v.toFixed(3)}${key === "fpm10" ? ` (actual ${pm(x.fpm)}/mi)` : `<br>${money(x[key], 2)} over ${num(x.miles)} mi`}` };
+  }) })), { fmt: (v) => "$" + v.toFixed(3) });
+
+  // one-time table
+  const ot = D.deductions.filter((d) => !d.IsOperating && (week === "all" || d.WeekStart === week)).map((d) => [d.TruckID, d.SettlementID, d.Category, d.Description, -d.Amount])
+    .concat(D.reimbursements.filter((r) => week === "all" || r.WeekStart === week).map((r) => [r.TruckID, r.SettlementID, "Reimbursement", r.Description, r.Amount]));
+  $("#oneTime").innerHTML = `<thead><tr><th>Truck</th><th class="left">Statement</th><th class="left">Type</th><th class="left">Description</th><th>Amount</th></tr></thead><tbody>` +
+    ot.map((r) => `<tr><td>${r[0]}</td><td class="left">${r[1]}</td><td class="left">${r[2]}</td><td class="left">${r[3]}</td><td class="${r[4] < 0 ? "lose" : "win"}">${r[4] < 0 ? "−" : "+"}${money(Math.abs(r[4]), 2)}</td></tr>`).join("") +
+    `<tr><td colspan="4"><b>Net effect on your checks</b></td><td><b>${money(ot.reduce((t, r) => t + r[4], 0), 2)}</b></td></tr></tbody>`;
+
+  // loads table
+  $("#loadsTable").innerHTML = `<thead><tr><th>Load</th><th>Truck</th><th class="left">Pickup → Delivery</th><th class="left">PU date</th><th>Loaded</th><th>Empty</th><th>Total mi</th><th>Gross</th><th>RPM</th><th>Loaded RPM</th><th>Deadhead</th><th>Driver pay</th></tr></thead><tbody>` +
+    loads.map((l) => `<tr><td>${l.LoadID}</td><td>${l.TruckID}</td><td class="left">${l.Pickup} → ${l.Delivery}</td><td class="left">${l.PickupDate.slice(5)}</td><td>${num(l.LoadedMiles, 1)}</td><td>${num(l.EmptyMiles, 1)}</td><td>${num(l.TotalMiles, 1)}</td><td>${money(l.Gross)}</td>
+      <td class="${l.RPM < fleet.cpm ? "lose" : ""}">${pm(l.RPM)}${l.RPM < fleet.cpm ? ' <span class="pill bad">low</span>' : ""}</td><td>${pm(l.LoadedRPM)}</td>
+      <td class="${l.DeadheadPct > 0.15 ? "lose" : ""}">${pct(l.DeadheadPct)}</td><td>${money(l.DriverPay, 2)}</td></tr>`).join("") + "</tbody>";
+
+  // fuel table
+  $("#fuelTable").innerHTML = `<thead><tr><th class="left">Date</th><th>Truck</th><th class="left">Product</th><th class="left">Location</th><th>Gallons</th><th>Retail</th><th>Charged</th><th>Discount</th><th>$/gal</th></tr></thead><tbody>` +
+    fleet.F.map((f) => `<tr><td class="left">${f.Date.slice(5)}</td><td>${f.TruckID}</td><td class="left">${f.Product}</td><td class="left">${f.City}, ${f.State}</td><td>${num(f.Gallons, 2)}</td><td>${money(f.RetailAmount, 2)}</td><td>${money(f.InvoiceAmount, 2)}</td><td>${money(f.Discount, 2)}</td><td>${f.PricePerGal ? pm(f.PricePerGal) : "—"}</td></tr>`).join("") +
+    `<tr><td colspan="4"><b>Total</b></td><td><b>${num(fleet.F.reduce((t, f) => t + f.Gallons, 0), 2)}</b></td><td></td><td><b>${money(fleet.dCost + fleet.defCost, 2)}</b></td><td><b>${money(fleet.disc, 2)}</b></td><td></td></tr></tbody>`;
+}
+
+// ---- static content: flags & recommendations (always about the full 2 weeks) ----
+const FLAGS = [
+  ["critical", "Registration charges: $6,910 billed, unit numbers don't match", "Two registrations were deducted as \"Safety\": $4,507.13 \"for 777 truck\" on truck 7777's statement and $2,403.19 \"for truck 77777\" (no such unit) on truck 777's. Only $2,643.04 came back as a reimbursement. Ask Wenze for both registration receipts and confirm which truck each is for — you may be paying one twice or paying for someone else's truck.", "$4,267 net"],
+  ["critical", "You are being charged travel for other drivers", "Air tickets for Donomy Jenkins ($363.48) and Moise Yankee ($226.20), Uber for Donomy Jenkins ($187.35) plus Ubers and a hotel from August–September — $917.72 total, labelled \"Safety\". These are recruiting/driver-onboarding costs from 1–2 months ago. Get the agreement on who pays driver travel in writing.", "$918"],
+  ["critical", "Open balance of −$6,019.89 on every statement", "The Balances box shows −$6,019.89 in open items on all four statements (plus fuel, toll and maintenance balances). That is money Wenze says you owe and will keep deducting. Request an itemised ledger of what makes up that figure.", "$6,020 owed"],
+  ["serious", "Truck 777 is burning more fuel", "5.39 MPG over 2 weeks vs 6.06 for truck 7777 — about 12% worse, costing $1.10/mi in fuel vs $0.98. Both trucks fell to ~4.4 MPG in the week of Oct 19. Check idle time in the ELD, tyre pressure, and driver speed; at 6.5 MPG truck 777 would have used ~118 fewer gallons — about $680 less in these 2 weeks.", "~$680"],
+  ["serious", "Truck 777 deadhead is 19.6% (fleet target ≤15%)", "734 empty miles out of 3,739. Load 80A9397 Byhalia MS → St. Louis was 54% deadhead (374 empty miles for 324 loaded). At the fleet's $2.56 CPM, the ~173 empty miles above the 15% line cost about $440.", "~$440"],
+  ["serious", "Truck 7777 lost money in the week of Oct 19", "RPM $2.64 vs CPM $3.08 → about −$1,157 operating. The $550 Clearwater FL → Unadilla GA load paid $1.42/mi and the driver got 53% of it; $549 in NYC-area tolls (George Washington Bridge, Holland Tunnel, Verrazano) and $3,491 of fuel on just 2,618 miles.", "−$1,157"],
+  ["serious", "Truck 777 runs half the miles of truck 7777", "1,870 mi/week vs 3,579 mi/week. Damarion's higher RPM ($3.31 vs $2.97) doesn't make up for it: gross was $12,360 vs $21,250. The truck is under-used — talk to dispatch about longer runs or back-to-back loads.", "−$8,890 gross"],
+  ["warning", "Oil change prices look high", "$571.13 for truck 777 and $524.79 for truck 7777. A Class 8 oil change is usually $300–$450. Ask for itemised invoices (0026140 and 4011180862) and shop around.", "~$250"],
+  ["warning", "Driver rate for truck 777 went up", "Damarion was paid $0.65/mi in the week of Oct 12 and $0.70/mi in the week of Oct 19, plus a $100 bonus charged to you. If you approved it, fine — if not, ask why.", "+$100/wk"],
+  ["warning", "Unexplained $1,500 \"Rodrick approve\" reimbursement and $106 EFS cash advance", "Both appear without detail. The reimbursement helped you, but you should know what it's for so it isn't taken back later.", "$1,606"],
+];
+document.getElementById("flags").innerHTML = FLAGS.map(([sev, t, b, a]) => `<li class="flag ${sev}"><div class="icon" aria-hidden="true">${sev === "warning" ? "!" : "▲"}</div>
+  <div><div class="sev">${sev}</div><div class="title">${t}</div><div class="body">${b}</div></div><div class="amt">${a}</div></li>`).join("");
+
+const RECS = [
+  ["Operating profit, not just net pay", "Net pay mixes this week's trucking with old registration bills and reimbursements. Truck 7777 netted $8.08 one week while actually earning ~$4,800 operating profit. Separating the two shows the real health of each truck."],
+  ["Breakeven RPM per truck", "CPM is your breakeven: $2.46 for 7777 and $2.75 for 777 (before truck payment). Never accept a load whose all-in RPM is below it. Add your truck payment, physical-damage insurance and permits to get the true number."],
+  ["Loaded RPM vs all-miles RPM", "Loaded RPM shows what the broker paid; all-miles RPM shows what you really earned after deadhead. A big gap (777: $4.11 vs $3.31) means dispatch is sending you too far empty."],
+  ["Driver pay % of gross", "Should sit around 25–30%. On cheap loads it explodes (53% on the $550 load) because the driver is paid per mile, not per dollar."],
+  ["Fuel price per gallon & card discount", "You saved $820 on the fuel card these 2 weeks. Tracking $/gal per stop shows which stops/states to avoid — e.g. Hagerstown MD and Bordentown NJ were the priciest."],
+  ["Tolls per mile", "7777 paid $0.21/mi in tolls in the week of Oct 19 vs $0.03/mi for 777. Routing around NYC bridges on the way to NJ loads can save hundreds."],
+  ["Miles per week (utilisation)", "Revenue follows miles. A truck under ~2,500 mi/week will struggle to cover $690/week of fixed charges plus the 12% fee."],
+  ["Running weekly trend", "Two weeks is too short to judge a driver or truck. Keep adding each settlement (run the build script) and watch the 4-week averages of MPG, RPM and maintenance/mile."],
+];
+document.getElementById("recs").innerHTML = RECS.map(([t, p]) => `<div class="rec"><b>${t}</b><p>${p}</p></div>`).join("");
+
+// ---- controls ----
+document.querySelectorAll("#weekSeg button").forEach((b) => b.addEventListener("click", () => {
+  week = b.dataset.week; document.querySelectorAll("#weekSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); }));
+document.querySelectorAll("#themeSeg button").forEach((b) => b.addEventListener("click", () => {
+  const t = b.dataset.theme; if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
+  document.querySelectorAll("#themeSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); }));
+render();
+})();
+</script>
+</body>
+</html>

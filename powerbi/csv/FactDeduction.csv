@@ -1,0 +1,44 @@
+DeductionID,SettlementID,TruckID,WeekStart,Category,StatementType,Description,Amount,IsOperating
+BL-001023-D1,BL-001023,7777,2026-10-12,Company Fee,Company Fee,Company fee 12%,1722.0,True
+BL-001023-D2,BL-001023,7777,2026-10-12,Cash Advance,Cash Advance,EFS (company) 165989559,106.0,False
+BL-001023-D3,BL-001023,7777,2026-10-12,Fixed Weekly,Trailer Rental,Trailer rental,200.0,True
+BL-001023-D4,BL-001023,7777,2026-10-12,Fixed Weekly,Eld Logbook,Weekly ELD,50.0,True
+BL-001023-D5,BL-001023,7777,2026-10-12,Fixed Weekly,Ifta,Weekly IFTA,40.0,True
+BL-001023-D6,BL-001023,7777,2026-10-12,Fixed Weekly,Insurance,Weekly cargo + liability,400.0,True
+BL-001023-D7,BL-001023,7777,2026-10-12,Tolls,Tolls,PrePass,10.0,True
+BL-001023-D8,BL-001023,7777,2026-10-12,Safety / Driver Travel,Safety,Uber for Donomy Jenkins 09/17/2026,187.35,False
+BL-001023-D9,BL-001023,7777,2026-10-12,Registration,Safety,Registration for 777 truck from 08/06/2026,4507.13,False
+BL-001023-D10,BL-001023,7777,2026-10-12,Tolls,Toll,Toll transactions,216.89,True
+BL-001023-D11,BL-001023,7777,2026-10-12,Fuel,Fuel,Fuel card (invoice price),3498.2,True
+BL-001024-D1,BL-001024,777,2026-10-12,Company Fee,Company Fee,Company fee 12%,655.2,True
+BL-001024-D2,BL-001024,777,2026-10-12,Fixed Weekly,Trailer Rental,Trailer rental,200.0,True
+BL-001024-D3,BL-001024,777,2026-10-12,Fixed Weekly,Eld Logbook,Weekly ELD,50.0,True
+BL-001024-D4,BL-001024,777,2026-10-12,Fixed Weekly,Ifta,Weekly IFTA,40.0,True
+BL-001024-D5,BL-001024,777,2026-10-12,Fixed Weekly,Insurance,Weekly cargo + liability,400.0,True
+BL-001024-D6,BL-001024,777,2026-10-12,Tolls,Tolls,PrePass,10.0,True
+BL-001024-D7,BL-001024,777,2026-10-12,Safety / Driver Travel,Safety,Air ticket for Donomy Jenkins 09/16/2026,363.48,False
+BL-001024-D8,BL-001024,777,2026-10-12,Safety / Driver Travel,Safety,Air ticket for Moise Yankee 08/19/2026,226.2,False
+BL-001024-D9,BL-001024,777,2026-10-12,Safety / Driver Travel,Safety,Hotel for Damarion 09/17/2026,75.09,False
+BL-001024-D10,BL-001024,777,2026-10-12,Registration,Safety,Registration for truck 77777 08/20/2026,2403.19,False
+BL-001024-D11,BL-001024,777,2026-10-12,Safety / Driver Travel,Safety,Uber 09/18/2026,18.95,False
+BL-001024-D12,BL-001024,777,2026-10-12,Safety / Driver Travel,Safety,Uber 09/17/2026,46.65,False
+BL-001024-D13,BL-001024,777,2026-10-12,Fuel,Fuel,Fuel card (invoice price),1388.45,True
+BL-001050-D1,BL-001050,7777,2026-10-19,Company Fee,Company Fee,Company fee 12%,828.0,True
+BL-001050-D2,BL-001050,7777,2026-10-19,Fixed Weekly,Trailer Rental,Trailer rental,200.0,True
+BL-001050-D3,BL-001050,7777,2026-10-19,Fixed Weekly,Eld Logbook,Weekly ELD,50.0,True
+BL-001050-D4,BL-001050,7777,2026-10-19,Fixed Weekly,Ifta,Weekly IFTA,40.0,True
+BL-001050-D5,BL-001050,7777,2026-10-19,Fixed Weekly,Insurance,Weekly cargo + liability,400.0,True
+BL-001050-D6,BL-001050,7777,2026-10-19,Tolls,Tolls,PrePass,10.0,True
+BL-001050-D7,BL-001050,7777,2026-10-19,Maintenance,Maintenance,"#7777 oil change, inv 4011180862 (10/21/2026)",524.79,True
+BL-001050-D8,BL-001050,7777,2026-10-19,Tolls,Toll,Toll transactions,549.16,True
+BL-001050-D9,BL-001050,7777,2026-10-19,Fuel,Fuel,Fuel card (invoice price),3490.95,True
+BL-001051-D1,BL-001051,777,2026-10-19,Driver Bonus,Bonus,"Bonus for driver, load 5498741",100.0,True
+BL-001051-D2,BL-001051,777,2026-10-19,Company Fee,Company Fee,Company fee 12%,828.0,True
+BL-001051-D3,BL-001051,777,2026-10-19,Fixed Weekly,Trailer Rental,Trailer rental,200.0,True
+BL-001051-D4,BL-001051,777,2026-10-19,Fixed Weekly,Eld Logbook,Weekly ELD,50.0,True
+BL-001051-D5,BL-001051,777,2026-10-19,Fixed Weekly,Ifta,Weekly IFTA,40.0,True
+BL-001051-D6,BL-001051,777,2026-10-19,Fixed Weekly,Insurance,Weekly cargo + liability,400.0,True
+BL-001051-D7,BL-001051,777,2026-10-19,Tolls,Tolls,PrePass,10.0,True
+BL-001051-D8,BL-001051,777,2026-10-19,Tolls,Toll,Toll transactions,59.15,True
+BL-001051-D9,BL-001051,777,2026-10-19,Maintenance,Maintenance,"#777 oil change, inv 0026140 (10/16/2026)",571.13,True
+BL-001051-D10,BL-001051,777,2026-10-19,Fuel,Fuel,Fuel card (invoice price),2736.59,True
