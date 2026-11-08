@@ -124,6 +124,54 @@ a { color: var(--s1); }
 .action .pill { margin: 0 6px 0 0; }
 .mentor-out { white-space: pre-wrap; margin-top: 12px; padding: 14px; background: var(--surface-2); border-radius: 10px; line-height: 1.55; min-height: 60px; }
 .routine li { margin-bottom: 6px; color: var(--text-secondary); } .routine b { color: var(--text-primary); }
+.ov-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mtile { display: grid; gap: 2px; text-align: left; padding: 12px 12px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; transition: border-color .15s; min-width: 0; }
+.mtile:hover { border-color: var(--text-muted); }
+.mtile:focus-visible, .stoggle:focus-visible, .btn:focus-visible, .wi input:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+.mtile.on { border-color: var(--s1); box-shadow: 0 0 0 1px var(--s1) inset; }
+.mlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
+.mval { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.mdelta { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.mdelta.up { color: var(--good-text); } .mdelta.down { color: var(--critical-text); }
+.spark { width: 100%; height: 30px; margin-top: 2px; }
+.ov-head { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
+.ov-num { min-width: 0; }
+.eyebrow { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.ov-hero h2 { font-size: 15px; color: var(--text-secondary); font-weight: 600; margin-top: 6px; }
+.ov-value { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ov-value #ovValue { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ov-value .delta { font-size: 14px; }
+.ov-hint { margin: 6px 0 0; }
+.ov-series { display: flex; flex-wrap: wrap; gap: 6px; }
+.stoggle { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-muted); border-radius: 99px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer; }
+.stoggle.on { color: var(--text-primary); background: var(--surface-2); border-color: var(--text-muted); }
+.stoggle:not(.on) .swatch { opacity: .35; }
+.ov-chart svg path.draw { stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: draw 1.1s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } .ov-chart svg path.draw { animation: none; stroke-dashoffset: 0; } }
+.rank { margin: 8px 0 4px; color: var(--text-secondary); }
+.levers { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 10px; }
+.levers li b { display: block; }
+.levers li span { color: var(--text-secondary); }
+.wi-head { display: flex; justify-content: space-between; align-items: center; }
+.wi-controls { display: grid; gap: 10px; margin-top: 10px; }
+.wi { display: grid; grid-template-columns: 160px 1fr 72px; gap: 10px; align-items: center; }
+.wi-l { color: var(--text-secondary); font-size: 13px; }
+.wi-v { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
+.wi input[type=range] { width: 100%; accent-color: var(--s1); }
+.wi-result { margin-top: 14px; padding: 12px; background: var(--surface-2); border-radius: 10px; display: grid; gap: 8px; }
+.wi-row { display: grid; grid-template-columns: 110px 1fr 90px; gap: 10px; align-items: center; font-size: 13px; }
+.wi-row b { text-align: right; font-variant-numeric: tabular-nums; }
+.wi-track { height: 12px; background: var(--surface-1); border-radius: 6px; overflow: hidden; }
+.wi-bar { height: 100%; border-radius: 6px; transition: width .25s; }
+.wi-bar.now { background: var(--text-muted); } .wi-bar.proj { background: var(--good); }
+.wi-gains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.wi-gains b { display: block; font-size: 20px; color: var(--good-text); font-variant-numeric: tabular-nums; }
+.wi-parts { display: flex; flex-wrap: wrap; gap: 6px; }
+.wi-parts .pill { margin: 0; }
+@media (max-width: 560px) { .wi { grid-template-columns: 1fr 64px; } .wi-l { grid-column: 1 / -1; } .wi-row { grid-template-columns: 90px 1fr 80px; } .ov-value #ovValue { font-size: 32px; } .two { grid-template-columns: 1fr; } .wi-gains b { font-size: 16px; } }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -146,6 +194,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   </header>
 
   <nav class="tabs" id="tabs" role="tablist">
+    <a href="#overview" data-tab="overview">Overview</a>
     <a href="#this-week" data-tab="this-week">This week</a>
     <a href="#mentor" data-tab="mentor">Mentor</a>
     <a href="#dashboard" data-tab="dashboard">Dashboard</a>
@@ -157,6 +206,48 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   <div class="filterbar" id="filterbar">
     <div class="seg" role="group" aria-label="Week filter" id="weekSeg"></div>
     <div class="seg" role="group" aria-label="Carrier filter" id="carrierSeg"></div>
+  </div>
+
+  <!-- ===================== OVERVIEW ===================== -->
+  <div class="panel" data-panel="overview">
+    <section class="ov-tiles" id="ovTiles" aria-label="Pick a number to chart"></section>
+
+    <section class="card full ov-hero">
+      <div class="ov-head">
+        <div class="ov-num">
+          <div class="eyebrow"><span class="pulse" aria-hidden="true"></span>Live · redraws when a statement is saved · <span id="ovUpdated">just now</span></div>
+          <h2 id="ovTitle">Operating profit</h2>
+          <div class="ov-value"><span id="ovValue">—</span><span id="ovDelta" class="delta"></span></div>
+          <div class="muted" id="ovSub"></div>
+        </div>
+        <div class="ov-series" id="ovSeries" aria-label="Lines to show"></div>
+      </div>
+      <div id="ovChart" class="ov-chart"></div>
+      <p class="muted ov-hint">Tap a number above to chart it. Tap a truck to hide or show its line. Hover the chart for exact values.</p>
+    </section>
+
+    <section class="grid two">
+      <div class="card">
+        <h2>How to improve <span id="ovImpName">this number</span></h2>
+        <div id="ovImprove"></div>
+      </div>
+      <div class="card">
+        <div class="wi-head"><h2>What if…</h2><button class="btn" id="wiReset">Reset</button></div>
+        <p class="muted">Move the sliders to see what each improvement is worth to you.</p>
+        <div id="wiControls" class="wi-controls"></div>
+        <div class="wi-result">
+          <div class="wi-row"><span>Now, per week</span><div class="wi-track"><div class="wi-bar now" id="wiBarNow"></div></div><b id="wiNow">—</b></div>
+          <div class="wi-row"><span>With changes</span><div class="wi-track"><div class="wi-bar proj" id="wiBarProj"></div></div><b id="wiProj">—</b></div>
+          <div class="wi-gains">
+            <div><span class="muted">extra per week</span><b id="wiGainW">—</b></div>
+            <div><span class="muted">per month</span><b id="wiGainM">—</b></div>
+            <div><span class="muted">per year</span><b id="wiGainY">—</b></div>
+          </div>
+          <div class="wi-parts" id="wiParts"></div>
+          <p class="muted" id="wiBase"></p>
+        </div>
+      </div>
+    </section>
   </div>
 
   <!-- ===================== THIS WEEK ===================== -->
@@ -827,13 +918,14 @@ $("#stmtTable").addEventListener("click", async (e) => {
 });
 
 // ---- tabs (hash routing) ----
-const TABS = ["this-week", "mentor", "dashboard", "trends", "loads", "statements"];
+const TABS = ["overview", "this-week", "mentor", "dashboard", "trends", "loads", "statements"];
 function showTab() {
-  const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "this-week";
+  const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === t));
   document.querySelectorAll("#tabs a").forEach((a) => a.setAttribute("aria-selected", a.dataset.tab === t));
-  $("#filterbar").style.display = t === "this-week" || t === "mentor" ? "none" : "";
+  $("#filterbar").style.display = t === "this-week" || t === "mentor" || t === "overview" ? "none" : "";
   if (D) render();
+  if (D && t === "overview") renderOverview();
 }
 window.addEventListener("hashchange", showTab);
 $("#prevWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i > 0) { curWeek = WEEKS[i - 1]; render(); } });
@@ -843,7 +935,7 @@ $("#carrierSeg").addEventListener("click", (e) => { const b = e.target.closest("
 
 // ---- line charts ----
 // series: [{name, color, points:[{x (week), y}]}]
-function lineChart(target, xs, series, { fmt, ref, refLabel, height = 230, width = 560 } = {}) {
+function lineChart(target, xs, series, { fmt, ref, refLabel, height = 230, width = 560, refMuted = false, animate = false } = {}) {
   const W = width, H = height, P = { l: 52, r: 34, t: 16, b: 30 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
   const vals = series.flatMap((s) => s.points.map((p) => p.y)).filter(ok).concat(ref != null ? [ref] : []);
@@ -857,11 +949,11 @@ function lineChart(target, xs, series, { fmt, ref, refLabel, height = 230, width
   if (lo < 0) el("line", { x1: P.l, x2: W - P.r, y1: y(0), y2: y(0), stroke: "var(--text-muted)" }, svg);
   const step = Math.ceil(xs.length / 8);
   xs.forEach((w, i) => { if (i % step === 0 || i === xs.length - 1) text(svg, x(i), H - 10, WLABEL[w] || w, { "text-anchor": "middle" }); });
-  if (ref != null) { el("line", { x1: P.l, x2: W - P.r, y1: y(ref), y2: y(ref), class: "ref" }, svg); text(svg, W - P.r, y(ref) - 5, refLabel, { "text-anchor": "end", style: "fill:var(--critical-text)" }); }
+  if (ref != null) { el("line", { x1: P.l, x2: W - P.r, y1: y(ref), y2: y(ref), class: "ref", style: refMuted ? "stroke:var(--text-muted)" : "" }, svg); text(svg, P.l + 6, y(ref) - 6, refLabel, { style: refMuted ? "fill:var(--text-secondary)" : "fill:var(--critical-text)" }); }
   const usedY = [];
   series.forEach((s) => {
     const pts = s.points.map((p) => [xs.indexOf(p.x), p.y]).filter(([i, v]) => i >= 0 && ok(v)).sort((a, b) => a[0] - b[0]);
-    if (pts.length > 1) el("path", { d: pts.map(([i, v], k) => `${k ? "L" : "M"}${x(i)},${y(v)}`).join(""), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+    if (pts.length > 1) el("path", { d: pts.map(([i, v], k) => `${k ? "L" : "M"}${x(i)},${y(v)}`).join(""), fill: "none", stroke: s.color, "stroke-width": s.width || 2, "stroke-linejoin": "round", class: animate ? "draw" : "" }, svg);
     pts.forEach(([i, v]) => el("circle", { cx: x(i), cy: y(v), r: 4, fill: s.color, stroke: "var(--surface-1)", "stroke-width": 2 }, svg));
     const last = pts[pts.length - 1];
     if (last && series.length <= 4 && usedY.every((u) => Math.abs(u - y(last[1])) > 14) && usedY.push(y(last[1]))) text(svg, x(last[0]) + (xs.length === 1 ? 8 : -2), y(last[1]) - 8, fmt(last[1]), { "text-anchor": xs.length === 1 ? "start" : "end", class: "val" });
@@ -1015,6 +1107,131 @@ ${JSON.stringify(ctx)}`;
 $("#askMentor").addEventListener("click", () => askMentor($("#mentorQ").value.trim()));
 $("#mentorQ").addEventListener("keydown", (e) => { if (e.key === "Enter") askMentor($("#mentorQ").value.trim()); });
 
+// ---- Overview: live metric explorer, improvement coach, what-if ----
+const kfmt = (v, ax) => !ok(v) ? "—" : (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(ax ? 0 : 1) + "k" : Math.abs(v).toFixed(0));
+const METRICS = [
+  { key: "profit", sum: true, label: "Operating profit", get: (x) => x.S.length ? x.profit : NaN, fmt: kfmt, big: (v) => money(v), hib: true, unit: "per week, before one-time charges" },
+  { key: "gross", sum: true, label: "Gross revenue", get: (x) => x.S.length ? x.gross : NaN, fmt: kfmt, big: (v) => money(v), hib: true, unit: "per week" },
+  { key: "net", sum: true, label: "Net pay deposited", get: (x) => x.S.length ? x.net : NaN, fmt: kfmt, big: (v) => money(v), hib: true, unit: "what actually hit your account" },
+  { key: "ppm", label: "Profit per mile", get: (x) => x.rpm - x.cpm, fmt: (v) => pm(v), big: pm, hib: true, unit: "revenue/mile − cost/mile", target: () => [0.5, "Goal $0.50"] },
+  { key: "rpm", label: "Rate per mile", get: (x) => x.rpm, fmt: (v) => pm(v), big: pm, hib: true, unit: "gross ÷ all miles", target: (all) => [all.cpm + 0.35, "Floor " + pm(all.cpm + 0.35)] },
+  { key: "cpm", label: "Cost per mile", get: (x) => x.cpm, fmt: (v) => pm(v), big: pm, hib: false, unit: "operating cost ÷ all miles" },
+  { key: "mpg", label: "MPG", get: (x) => x.dGal > 0 ? x.mpg : NaN, fmt: (v, ax) => ok(v) ? v.toFixed(ax ? 0 : 1) : "—", big: (v) => ok(v) ? v.toFixed(2) : "—", hib: true, unit: "miles per gallon of diesel", target: () => [6.5, "Target 6.5"] },
+  { key: "dh", label: "Deadhead", get: (x) => x.dh, fmt: (v) => pct(v, 0), big: (v) => pct(v), hib: false, unit: "empty miles ÷ all miles", target: () => [0.15, "Limit 15%"] },
+  { key: "mpt", label: "Miles per truck", get: (x) => { const n = new Set(x.S.map((s) => s.TruckID)).size; return n ? x.miles / n : NaN; }, fmt: (v) => ok(v) ? num(v) : "—", big: (v) => num(v), hib: true, unit: "per truck per week", target: () => [2750, "Target 2,750"] },
+  { key: "fpm", label: "Fuel per mile", get: (x) => x.fpm, fmt: (v) => pm(v), big: pm, hib: false, unit: "fuel + DEF ÷ all miles" },
+];
+let ovMetric = "profit", ovShow = null; // ovShow: Set of series ids ("fleet" + truck ids)
+try { const s = localStorage.getItem("ovMetric"); if (s && METRICS.some((q) => q.key === s)) ovMetric = s; } catch {}
+function at2(w, t) { const sw = week, sc = carrier; week = w; carrier = "all"; const r = m(t); week = sw; carrier = sc; return r; }
+function sparkSVG(vals, color) {
+  const W = 120, H = 34, pts = vals.map((v, i) => [i, v]).filter(([, v]) => ok(v));
+  if (pts.length < 1) return "";
+  const lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1])), sp = hi - lo || 1;
+  const X = (i) => 3 + (vals.length === 1 ? (W - 6) / 2 : (i * (W - 6)) / (vals.length - 1)), Y = (v) => 4 + (H - 8) * (1 - (v - lo) / sp);
+  const d = pts.map(([i, v], k) => `${k ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+  const last = pts[pts.length - 1];
+  const area = pts.length > 1 ? `<path d="${d}L${X(last[0])},${H}L${X(pts[0][0])},${H}Z" fill="${color}" opacity=".12"/>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" aria-hidden="true">${area}<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/><circle cx="${X(last[0])}" cy="${Y(last[1])}" r="3" fill="${color}"/></svg>`;
+}
+function renderOverview() {
+  if (!WEEKS.length) { $("#ovTiles").innerHTML = `<p class="muted">No statements yet. Upload one on the This week tab and this page fills in.</p>`; return; }
+  const xs = WEEKS.slice(-16), last = WEEKS[WEEKS.length - 1], prev = WEEKS[WEEKS.length - 2];
+  const all = at2("all"), M = METRICS.find((q) => q.key === ovMetric);
+  if (!ovShow) ovShow = new Set(["fleet", ...TRUCKS]);
+  TRUCKS.forEach((t) => { if (!ovShow.has(t) && !ovShow.has("seen-" + t)) { ovShow.add(t); } ovShow.add("seen-" + t); });
+  $("#ovTiles").innerHTML = METRICS.map((q) => {
+    const vals = xs.map((w) => q.get(at2(w))), cur = q.get(at2(last)), pv = prev ? q.get(at2(prev)) : NaN;
+    const d = ok(cur) && ok(pv) && cur !== pv ? cur - pv : null, good = d != null && (d > 0) === q.hib;
+    return `<button class="mtile ${q.key === ovMetric ? "on" : ""}" data-metric="${q.key}" aria-pressed="${q.key === ovMetric}">
+      <span class="mlabel">${q.label}</span><span class="mval">${q.big(cur)}</span>
+      <span class="mdelta ${d == null ? "" : good ? "up" : "down"}">${d == null ? "&nbsp;" : (d > 0 ? "▲ " : "▼ ") + q.big(Math.abs(d)).replace("−", "")}</span>
+      ${sparkSVG(vals, q.key === ovMetric ? "var(--s1)" : "var(--text-muted)")}</button>`;
+  }).join("");
+  const cur = M.get(at2(last)), pv = prev ? M.get(at2(prev)) : NaN, avgV = M.sum ? M.get(all) / WEEKS.length : M.get(all);
+  $("#ovTitle").textContent = M.label;
+  $("#ovValue").textContent = M.big(cur);
+  const d = ok(cur) && ok(pv) ? cur - pv : null;
+  $("#ovDelta").className = "delta " + (d == null || d === 0 ? "" : (d > 0) === M.hib ? "up" : "down");
+  $("#ovDelta").textContent = d == null || d === 0 ? "" : `${d > 0 ? "▲" : "▼"} ${M.big(Math.abs(d)).replace("−", "")} vs last week`;
+  $("#ovSub").textContent = `Latest week ${WLABEL[last]} · ${M.unit} · ${WEEKS.length}-week average ${M.big(avgV)}`;
+  $("#ovSeries").innerHTML = [["fleet", "Whole fleet", "var(--text-primary)"], ...TRUCKS.map((t) => [t, `Truck ${t}`, TC[t]])]
+    .map(([id, l, c]) => `<button class="stoggle ${ovShow.has(id) ? "on" : ""}" data-series="${id}" aria-pressed="${ovShow.has(id)}"><span class="swatch" style="background:${c}"></span>${l}</button>`).join("");
+  const series = [];
+  if (ovShow.has("fleet")) series.push({ name: "Whole fleet", color: "var(--text-primary)", width: 3, points: xs.map((w) => ({ x: w, y: M.get(at2(w)) })) });
+  TRUCKS.filter((t) => ovShow.has(t)).forEach((t) => series.push({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => ({ x: w, y: M.get(at2(w, t)) })) }));
+  const tg = M.target ? M.target(all) : [avgV, "Average " + M.big(avgV)];
+  const cw = Math.round($("#ovChart").clientWidth) || 1100;
+  lineChart("#ovChart", xs, series, { width: Math.max(320, cw), height: cw < 600 ? 260 : 320, fmt: M.fmt, ref: ok(tg[0]) ? tg[0] : null, refLabel: tg[1], refMuted: !M.target, animate: true });
+  renderImprove(M, all);
+}
+function renderImprove(M, all) {
+  const ranked = TRUCKS.map((t) => [t, at2("all", t)]).filter(([, x]) => x.L.length).map(([t, x]) => [t, M.get(x)]).filter(([, v]) => ok(v))
+    .sort((a, b) => M.hib ? a[1] - b[1] : b[1] - a[1]);
+  const worst = ranked[0], best = ranked[ranked.length - 1];
+  const W = WEEKS.length, fee = (all.cat["Company Fee"] || 0) / all.gross, varpm = (all.dpay + (all.cat.Fuel || 0) + all.tolls + all.maint) / all.miles;
+  const mw = all.miles / W, yr = (v) => money(v * 52);
+  const L = {
+    profit: [["Raise your rate floor", `Every +$0.10 a mile on your ${num(mw)} miles a week is about ${yr(0.1 * mw * (1 - fee))} a year.`], ["Cut empty miles", `Each 1 point less deadhead saves about ${yr(0.01 * mw * varpm)} a year.`], ["Burn less fuel", `+0.5 MPG saves about ${yr((all.dGal / W - mw / (all.mpg + 0.5)) * (all.dCost / all.dGal))} a year.`]],
+    gross: [["Run more miles", "Trucks under 2,500 miles a week leave the most money on the table. Ask dispatch for back-to-back loads and longer lanes."], ["Book better lanes", "Your best loads paid over $3.50 a mile. Ask dispatch for more of those lanes and fewer short hauls under $2."], ["Reload faster", "Book the next load before delivery so the truck never sits a day."]],
+    net: [["Stop surprise deductions", `${money(all.oneTime)} of one-time charges came out so far. Every one needs a receipt; dispute anything that isn't for your truck.`], ["Watch the open balance", "Ask each carrier for a ledger of what you owe, so deductions don't surprise you."], ["Grow operating profit", "Net pay follows operating profit. Pick that number above to see its levers."]],
+    ppm: [["Floor at cost + $0.35", `Your cost per mile is ${pm(all.cpm)}. Don't take loads under ${pm(all.cpm + 0.35)} all-in.`], ["Lower fuel per mile", `Fuel is ${pm(all.fpm)} a mile. Better MPG and card discounts drop it fastest.`], ["Avoid toll routes", `Tolls cost ${pm(all.tolls / all.miles)} a mile. Route around NYC bridges where you can.`]],
+    rpm: [["Count deadhead in the rate", "Judge a load by gross ÷ (loaded + empty) miles, not the broker's loaded rate."], ["Say no to cheap freight", `Loads under ${pm(all.cpm)} a mile lose money outright. Send dispatch your floor in writing.`], ["Pick strong freight days", "Rates are usually best early in the week and out of produce and holiday freight areas."]],
+    cpm: [["Fuel first", `Fuel is ${pct((all.cat.Fuel || 0) / all.op, 0)} of your cost. +0.5 MPG and a card discount are the quickest wins.`], ["Spread fixed fees over more miles", "Weekly fees are the same at 1,800 or 3,000 miles. More miles means a lower cost per mile."], ["Plan maintenance", `Schedule oil changes by mileage and get two quotes. ${money(all.maint)} spent so far.`]],
+    mpg: [["Idle time", "Pull the ELD idle report. Every hour of idling burns about 0.8 gallons."], ["Speed", "Cruise at 62–65 mph. Each mph over 65 costs roughly 0.1 MPG."], ["Tires and trailer", "Check tire pressure weekly and close the trailer gap. Under-inflated tires alone can cost 3%."]],
+    dh: [["Book the reload early", "Have dispatch line up the next load before delivery."], ["Cap empty legs", "Keep deadhead under about 75 miles unless the next load pays for it."], ["Know your problem areas", "See where empty miles happen on the Loads & fuel tab and avoid those delivery areas."]],
+    mpt: [["Driver hours", "Check the driver's hours and home-time plan. Idle days are lost revenue."], ["Longer lanes", "One long load beats three short ones: fewer empty miles and less waiting."], ["Plan the week", "Ask dispatch for a Monday plan for each truck."]],
+    fpm: [["Fuel card discount", "Make sure every carrier gives you a card discount. Retail-priced gallons cost about $0.40 more."], ["Cheaper states", "Fill up before high-tax states such as NJ, PA and CA where you can."], ["MPG", "Speed and idling are the two biggest levers."]],
+  }[M.key];
+  $("#ovImpName").textContent = M.label.toLowerCase();
+  $("#ovImprove").innerHTML =
+    (worst && best && worst[0] !== best[0] ? `<p class="rank"><span class="swatch" style="background:${TC[worst[0]]}"></span><b>Truck ${worst[0]}</b> is weakest at ${M.big(worst[1])}. <span class="swatch" style="background:${TC[best[0]]}"></span><b>Truck ${best[0]}</b> is best at ${M.big(best[1])}.</p>` : "") +
+    `<ol class="levers">${L.map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join("")}</ol>`;
+}
+const SLIDERS = [
+  ["wiRate", "Rate per mile", 0, 0.6, 0.05, (v) => "+" + pm(v)],
+  ["wiMpg", "MPG", 0, 2, 0.1, (v) => "+" + v.toFixed(1)],
+  ["wiDh", "Deadhead", 0, 10, 1, (v) => "−" + v + " pts"],
+  ["wiMiles", "Miles per truck / week", 0, 1000, 50, (v) => "+" + num(v)],
+  ["wiFixed", "Weekly fees per truck", 0, 300, 25, (v) => "−" + money(v)],
+];
+function buildWhatIf() {
+  $("#wiControls").innerHTML = SLIDERS.map(([id, l, mn, mx, st]) => `<label class="wi" for="${id}"><span class="wi-l">${l}</span><input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="0"><span class="wi-v" id="${id}V"></span></label>`).join("");
+  $("#wiControls").addEventListener("input", renderWhatIf);
+  $("#wiReset").addEventListener("click", () => { SLIDERS.forEach(([id]) => ($("#" + id).value = 0)); renderWhatIf(); });
+}
+function renderWhatIf() {
+  if (!WEEKS.length) return;
+  const all = at2("all"), W = WEEKS.length;
+  const n = new Set(all.S.map((s) => s.TruckID + s.WeekStart)).size / W;
+  const M = all.miles / W, fee = (all.cat["Company Fee"] || 0) / all.gross, p = all.dCost / all.dGal, gal = all.dGal / W;
+  const varpm = (all.dpay + (all.cat.Fuel || 0) + all.tolls + all.maint) / all.miles;
+  const base = all.profit / W, v = Object.fromEntries(SLIDERS.map(([id]) => [id, +$("#" + id).value]));
+  SLIDERS.forEach(([id, , , , , f]) => ($("#" + id + "V").textContent = f(v[id])));
+  const parts = [
+    ["Rate", v.wiRate * M * (1 - fee)],
+    ["MPG", ok(all.mpg) && ok(p) ? (gal - M / (all.mpg + v.wiMpg)) * p : 0],
+    ["Deadhead", (v.wiDh / 100) * M * varpm],
+    ["More miles", v.wiMiles * n * (all.rpm * (1 - fee) - varpm)],
+    ["Fees", v.wiFixed * n],
+  ];
+  const gain = parts.reduce((t, [, x]) => t + x, 0), proj = base + gain;
+  $("#wiNow").textContent = money(base); $("#wiProj").textContent = money(proj);
+  const sg = (x) => (x >= 0 ? "+" : "") + money(x);
+  $("#wiGainW").textContent = sg(gain); $("#wiGainM").textContent = sg(gain * 4.33); $("#wiGainY").textContent = sg(gain * 52);
+  const mx = Math.max(Math.abs(base), Math.abs(proj), 1);
+  $("#wiBarNow").style.width = Math.max(2, (Math.max(0, base) / mx) * 100) + "%";
+  $("#wiBarProj").style.width = Math.max(2, (Math.max(0, proj) / mx) * 100) + "%";
+  $("#wiParts").innerHTML = parts.filter(([, x]) => Math.abs(x) > 0.5).map(([l, x]) => `<span class="pill">${l} +${money(x)}/wk</span>`).join("") || `<span class="muted">Move a slider to see what it's worth.</span>`;
+  $("#wiBase").textContent = `Based on your ${W}-week average: ${num(M)} miles a week, ${pm(all.rpm)}/mi rate, ${pm(all.cpm)}/mi cost, ${ok(all.mpg) ? all.mpg.toFixed(1) : "—"} MPG, ${pct(all.dh)} deadhead.`;
+}
+$("#ovTiles").addEventListener("click", (e) => { const b = e.target.closest("[data-metric]"); if (!b) return; ovMetric = b.dataset.metric; try { localStorage.setItem("ovMetric", ovMetric); } catch {} renderOverview(); });
+$("#ovSeries").addEventListener("click", (e) => { const b = e.target.closest("[data-series]"); if (!b) return; const id = b.dataset.series;
+  const lines = ["fleet", ...TRUCKS].filter((k) => ovShow.has(k));
+  if (ovShow.has(id)) { if (lines.length > 1) ovShow.delete(id); } else ovShow.add(id); renderOverview(); });
+buildWhatIf();
+let ovRz; window.addEventListener("resize", () => { clearTimeout(ovRz); ovRz = setTimeout(() => { if (D && document.querySelector('[data-panel="overview"].active')) renderOverview(); }, 200); });
+
 const _render = render;
 render = function () {
   if (!D) return;
@@ -1023,7 +1240,7 @@ render = function () {
   if (!D.settlements.length) return;
   _render();
   const save = week; $("#autoFlags").innerHTML = flagList(flags.filter((f) => (week === "all" || !f.wk || f.wk === week) && (carrier === "all" || !f.wk || f.title.match(/Truck (\S+)/) && visTrucks().includes(f.title.match(/Truck (\S+)/)[1]))), "No red flags. 👍");
-  renderTrends(); stmtTable(); renderLines(); renderMentor(flags);
+  renderTrends(); stmtTable(); renderLines(); renderMentor(flags); renderOverview(); renderWhatIf();
 };
 
 // ---- database ----
@@ -1056,6 +1273,7 @@ setData(window.FLEET); showTab(); // instant first paint from the bundled copy
     if (snap.metadata.fromCache && snap.empty) return;
     if (!snap.metadata.fromCache) { clearTimeout(timer); }
     setData(fromDocs(snap.docs.map((x) => x.data())));
+    if (!snap.metadata.fromCache) $("#ovUpdated").textContent = "updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     render();
     setStatus(snap.metadata.fromCache ? "" : "live", `Live database · ${snap.size} statement${snap.size === 1 ? "" : "s"}${snap.metadata.hasPendingWrites ? " · saving…" : ""}`);
     if (snap.empty) $("#subtitle").textContent = "Database is empty — upload a settlement PDF below.";
