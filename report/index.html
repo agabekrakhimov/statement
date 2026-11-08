@@ -116,6 +116,14 @@ details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px
 .delta { font-size: 12px; font-weight: 600; }
 .delta.up { color: var(--good-text); } .delta.down { color: var(--critical-text); }
 a { color: var(--s1); }
+.actions { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.action { display: flex; justify-content: space-between; gap: 12px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
+.action label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.action input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--good); }
+.action.done { opacity: .55; } .action.done b { text-decoration: line-through; }
+.action .pill { margin: 0 6px 0 0; }
+.mentor-out { white-space: pre-wrap; margin-top: 12px; padding: 14px; background: var(--surface-2); border-radius: 10px; line-height: 1.55; min-height: 60px; }
+.routine li { margin-bottom: 6px; color: var(--text-secondary); } .routine b { color: var(--text-primary); }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -139,6 +147,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 
   <nav class="tabs" id="tabs" role="tablist">
     <a href="#this-week" data-tab="this-week">This week</a>
+    <a href="#mentor" data-tab="mentor">Mentor</a>
     <a href="#dashboard" data-tab="dashboard">Dashboard</a>
     <a href="#trends" data-tab="trends">Week by week</a>
     <a href="#loads" data-tab="loads">Loads &amp; fuel</a>
@@ -177,11 +186,58 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
       </div>
     </section>
 
+    <section class="card full">
+      <h2>🧭 Your mentor says: do these next</h2>
+      <ul class="actions" id="topActions"></ul>
+      <p style="margin:10px 0 0"><a href="#mentor">See the full action plan →</a></p>
+    </section>
+
     <section class="grid kpis" id="weekKpis"></section>
+
+    <section class="card full">
+      <h2>Gross, operating profit &amp; net pay by week</h2>
+      <p class="muted">Whole fleet. Hover a week for the numbers.</p>
+      <div class="legend" id="lnProfitLegend"></div>
+      <div id="lnProfit"></div>
+    </section>
 
     <section class="card full">
       <h2>🚩 This week's red flags</h2>
       <ul class="flags" id="weekFlags"></ul>
+    </section>
+  </div>
+
+  <!-- ===================== MENTOR ===================== -->
+  <div class="panel" data-panel="mentor">
+    <section class="card full">
+      <h2>🧭 Ask your mentor</h2>
+      <p class="muted">Claude reads all your numbers and red flags and coaches you on what to do this week. Ask anything, e.g. "Should I keep truck 777 with Wenze?" or "What rate should I ask for?".</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <input id="mentorQ" placeholder="Optional question…" style="flex:1;min-width:220px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);font:inherit">
+        <button class="btn primary" id="askMentor">Get coaching</button>
+      </div>
+      <div class="mentor-out" id="mentorOut"><p class="muted">Press “Get coaching” for this week's review.</p></div>
+      <div class="muted" id="mentorWhen"></div>
+    </section>
+
+    <section class="card full">
+      <h2>Action plan</h2>
+      <p class="muted" id="mentorSummary"></p>
+      <p class="muted">Built automatically from your statements. Tick items off as you do them; ticks are saved. New items appear when new statements reveal something.</p>
+      <ul class="actions" id="actions"></ul>
+    </section>
+
+    <section class="card full">
+      <h2>Your weekly routine (20 minutes)</h2>
+      <ol class="routine">
+        <li><b>Day statements arrive:</b> upload every truck's PDF on the <a href="#this-week">This week</a> tab. Make sure no truck shows “Missing”.</li>
+        <li><b>Read the red flags.</b> Anything “critical” = call or email the carrier the same day. Ask for corrections in writing.</li>
+        <li><b>Check each truck's RPM vs CPM.</b> Below cost = talk to dispatch about the loads they booked.</li>
+        <li><b>Check MPG and fuel $/gal.</b> Low MPG = talk to the driver (idling, speed, tires).</li>
+        <li><b>Look at one-time charges.</b> Every one needs a receipt that matches your truck number.</li>
+        <li><b>Tick off finished actions</b> here and press “Get coaching” for next week's priorities.</li>
+        <li><b>Monthly:</b> compare carriers on the Dashboard (fee %, weekly fees, fuel discount) and set aside money for maintenance, plates and IFTA.</li>
+      </ol>
     </section>
   </div>
 
@@ -233,23 +289,37 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 
   <!-- ===================== TRENDS ===================== -->
   <div class="panel" data-panel="trends">
+    <section class="grid two">
+      <div class="card">
+        <h2>Revenue vs cost per mile — trend</h2>
+        <p class="muted">The gap between the lines is your profit per mile.</p>
+        <div class="legend" id="lnRpmLegend"></div>
+        <div id="lnRpm"></div>
+      </div>
+      <div class="card">
+        <h2>Gross by truck — trend</h2>
+        <div class="legend" id="lnGrossLegend"></div>
+        <div id="lnGross"></div>
+      </div>
+    </section>
+    <section class="grid two">
+      <div class="card">
+        <h2>MPG by truck — trend</h2>
+        <p class="muted">Red line = 6.5 MPG target. One bad week can be fill-up timing; two in a row is a problem.</p>
+        <div class="legend" id="lnMpgLegend"></div>
+        <div id="lnMpg"></div>
+      </div>
+      <div class="card">
+        <h2>Operating profit by truck — trend</h2>
+        <p class="muted">Below $0 = the truck lost money that week.</p>
+        <div class="legend" id="lnTruckProfitLegend"></div>
+        <div id="lnTruckProfit"></div>
+      </div>
+    </section>
     <section class="card full">
       <h2>Week by week</h2>
       <p class="muted">One row per week. Arrows compare with the week before.</p>
       <div class="tablewrap"><table id="trendTable"></table></div>
-    </section>
-    <section class="grid two">
-      <div class="card">
-        <h2>Gross revenue by week</h2>
-        <div class="legend" id="grossLegend"></div>
-        <div id="grossChart"></div>
-      </div>
-      <div class="card">
-        <h2>Revenue per mile vs cost per mile</h2>
-        <p class="muted">RPM above CPM = the truck made money that week.</p>
-        <div class="legend" id="rpmLegend"></div>
-        <div id="rpmChart"></div>
-      </div>
     </section>
   </div>
 
@@ -378,7 +448,7 @@ function bindTip(el, html) {
 const NS = "http://www.w3.org/2000/svg";
 function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
 function text(parent, x, y, s, attrs = {}) { const t = el("text", { x, y, ...attrs }, parent); t.textContent = s; return t; }
-function legend(id, items) { $(id).innerHTML = items.map(([c, l]) => `<span><span class="swatch" style="background:${c}"></span>${l}</span>`).join(""); }
+function legend(id, items) { if (!$(id)) return; $(id).innerHTML = items.map(([c, l]) => `<span><span class="swatch" style="background:${c}"></span>${l}</span>`).join(""); }
 // bar with 4px rounded data-end, square at baseline
 function barPath(x, y, w, h, horiz) {
   const r = Math.min(4, (horiz ? h : w) / 2, horiz ? w : h);
@@ -389,6 +459,7 @@ function niceMax(v) { if (!(v > 0)) return 1; const p = Math.pow(10, Math.floor(
 
 // grouped vertical bars. groups: [{label, bars:[{value, color, tip, label}]}]
 function vbars(target, groups, { fmt, ref, refLabel, height = 240, max } = {}) {
+  if (!$(target)) return;
   const W = 560, H = height, P = { l: 44, r: 8, t: 18, b: 34 };
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
   groups.forEach((g) => g.bars.forEach((b) => { if (!ok(b.value)) b.value = 0; if (!b.value) b.showLabel = false; }));
@@ -756,12 +827,12 @@ $("#stmtTable").addEventListener("click", async (e) => {
 });
 
 // ---- tabs (hash routing) ----
-const TABS = ["this-week", "dashboard", "trends", "loads", "statements"];
+const TABS = ["this-week", "mentor", "dashboard", "trends", "loads", "statements"];
 function showTab() {
   const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "this-week";
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === t));
   document.querySelectorAll("#tabs a").forEach((a) => a.setAttribute("aria-selected", a.dataset.tab === t));
-  $("#filterbar").style.display = t === "this-week" ? "none" : "";
+  $("#filterbar").style.display = t === "this-week" || t === "mentor" ? "none" : "";
   if (D) render();
 }
 window.addEventListener("hashchange", showTab);
@@ -769,6 +840,180 @@ $("#prevWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek
 $("#nextWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i < WEEKS.length - 1) { curWeek = WEEKS[i + 1]; render(); } });
 $("#carrierSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; carrier = b.dataset.carrier;
   document.querySelectorAll("#carrierSeg button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); });
+
+// ---- line charts ----
+// series: [{name, color, points:[{x (week), y}]}]
+function lineChart(target, xs, series, { fmt, ref, refLabel, height = 230, width = 560 } = {}) {
+  const W = width, H = height, P = { l: 52, r: 34, t: 16, b: 30 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  const vals = series.flatMap((s) => s.points.map((p) => p.y)).filter(ok).concat(ref != null ? [ref] : []);
+  if (!vals.length || !xs.length) { $(target).innerHTML = `<p class="muted">No data yet.</p>`; return; }
+  let lo = Math.min(0, ...vals), hi = Math.max(...vals) * 1.05; if (hi <= lo) hi = lo + 1;
+  const raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), stepV = [1, 2, 2.5, 5, 10].map((n) => n * mag).find((v) => v >= raw);
+  lo = Math.floor(lo / stepV) * stepV; hi = Math.ceil(hi / stepV) * stepV;
+  const x = (i) => P.l + (xs.length === 1 ? (W - P.l - P.r) / 2 : (i * (W - P.l - P.r)) / (xs.length - 1));
+  const y = (v) => P.t + (H - P.t - P.b) * (1 - (v - lo) / (hi - lo));
+  for (let v = lo; v <= hi + stepV / 2; v += stepV) { el("line", { x1: P.l, x2: W - P.r, y1: y(v), y2: y(v), class: "gridline" }, svg); text(svg, P.l - 6, y(v) + 4, fmt(Math.abs(v) < 1e-9 ? 0 : v, true), { "text-anchor": "end" }); }
+  if (lo < 0) el("line", { x1: P.l, x2: W - P.r, y1: y(0), y2: y(0), stroke: "var(--text-muted)" }, svg);
+  const step = Math.ceil(xs.length / 8);
+  xs.forEach((w, i) => { if (i % step === 0 || i === xs.length - 1) text(svg, x(i), H - 10, WLABEL[w] || w, { "text-anchor": "middle" }); });
+  if (ref != null) { el("line", { x1: P.l, x2: W - P.r, y1: y(ref), y2: y(ref), class: "ref" }, svg); text(svg, W - P.r, y(ref) - 5, refLabel, { "text-anchor": "end", style: "fill:var(--critical-text)" }); }
+  const usedY = [];
+  series.forEach((s) => {
+    const pts = s.points.map((p) => [xs.indexOf(p.x), p.y]).filter(([i, v]) => i >= 0 && ok(v)).sort((a, b) => a[0] - b[0]);
+    if (pts.length > 1) el("path", { d: pts.map(([i, v], k) => `${k ? "L" : "M"}${x(i)},${y(v)}`).join(""), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+    pts.forEach(([i, v]) => el("circle", { cx: x(i), cy: y(v), r: 4, fill: s.color, stroke: "var(--surface-1)", "stroke-width": 2 }, svg));
+    const last = pts[pts.length - 1];
+    if (last && series.length <= 4 && usedY.every((u) => Math.abs(u - y(last[1])) > 14) && usedY.push(y(last[1]))) text(svg, x(last[0]) + (xs.length === 1 ? 8 : -2), y(last[1]) - 8, fmt(last[1]), { "text-anchor": xs.length === 1 ? "start" : "end", class: "val" });
+  });
+  // crosshair + tooltip
+  const cross = el("line", { y1: P.t, y2: H - P.b, stroke: "var(--text-muted)", "stroke-dasharray": "2 3", opacity: 0 }, svg);
+  xs.forEach((w, i) => {
+    const half = xs.length === 1 ? (W - P.l - P.r) / 2 : (W - P.l - P.r) / (xs.length - 1) / 2;
+    const hit = el("rect", { x: x(i) - half, y: P.t, width: half * 2, height: H - P.t - P.b, class: "hit" }, svg);
+    hit.addEventListener("mouseenter", () => { cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", 1); });
+    hit.addEventListener("mouseleave", () => cross.setAttribute("opacity", 0));
+    bindTip(hit, `<b>${WLABEL[w]}</b><br>` + series.map((s) => { const p = s.points.find((q) => q.x === w); return `<span class="swatch" style="background:${s.color}"></span>${esc(s.name)}: ${p && ok(p.y) ? fmt(p.y) : "—"}`; }).join("<br>"));
+  });
+  $(target).replaceChildren(svg);
+}
+function renderLines() {
+  const save = week, saveC = carrier, vt = visTrucks(), xs = WEEKS.slice(-12);
+  const at = (w, t) => { week = w; const r = m(t); week = save; return r; };
+  const fleetPts = xs.map((w) => [w, at(w)]);
+  legend("#lnProfitLegend", [["var(--s1)", "Gross"], ["var(--s3)", "Operating profit"], ["var(--s2)", "Net pay deposited"]]);
+  lineChart("#lnProfit", xs, [
+    { name: "Gross", color: "var(--s1)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.gross : NaN })) },
+    { name: "Operating profit", color: "var(--s3)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.profit : NaN })) },
+    { name: "Net pay deposited", color: "var(--s2)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.net : NaN })) },
+  ], { width: 1100, height: 280, fmt: (v, ax) => (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(ax ? 0 : 1) + "k" : Math.abs(v).toFixed(0)) });
+  legend("#lnRpmLegend", [["var(--s3)", "RPM (revenue/mile)"], ["var(--s8)", "CPM (cost/mile)"]]);
+  lineChart("#lnRpm", xs, [
+    { name: "RPM", color: "var(--s3)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.rpm })) },
+    { name: "CPM", color: "var(--s8)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.cpm })) },
+  ], { fmt: (v) => "$" + v.toFixed(2) });
+  legend("#lnGrossLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
+  lineChart("#lnGross", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.S.length ? x.gross : NaN }; }) })),
+    { fmt: (v, ax) => "$" + (v / 1000).toFixed(ax ? 0 : 1) + "k" });
+  legend("#lnMpgLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
+  lineChart("#lnMpg", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.dGal > 0 ? x.mpg : NaN }; }) })),
+    { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 target" });
+  legend("#lnTruckProfitLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
+  lineChart("#lnTruckProfit", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.S.length ? x.profit : NaN }; }) })),
+    { fmt: (v, ax) => (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(ax ? 0 : 1) + "k" : Math.abs(v).toFixed(0)) });
+  carrier = saveC;
+}
+
+// ---- Mentor: action plan ----
+let doneMap = {};            // actionKey -> {done, at}
+function buildActions(flags) {
+  const A = [], save = week, saveC = carrier; carrier = "all";
+  const at = (w, t) => { week = w; const r = m(t); week = save; return r; };
+  const all = at("all"), target = all.cpm + 0.35;
+  const add = (key, cat, pri, title, why, impact) => A.push({ key, cat, pri, title, why, impact });
+  const carrierOf = (id) => (D.settlements.find((s) => s.SettlementID === id) || {}).Carrier || "the carrier";
+  D.settlements.forEach((s) => {
+    const id = s.SettlementID, X = D.deductions.filter((d) => d.SettlementID === id), L = D.loads.filter((l) => l.SettlementID === id);
+    const lp = L.reduce((t, l) => t + l.DriverPay, 0);
+    if (L.length && Math.abs(lp - s.DriverPay) > 1) add(`drvpay-${id}`, "Recover money", 1, `Call ${s.Carrier} billing about ${money(s.DriverPay - lp, 2)} extra driver pay on ${id}`,
+      `They charged ${money(s.DriverPay, 2)} for driver pay but the loads only add up to ${money(lp, 2)}. Ask for the breakdown in writing; if it's an error, ask for a credit on next week's statement.`, s.DriverPay - lp);
+    X.filter((d) => d.Category === "Registration").forEach((d, i) => add(`reg-${id}-${i}`, "Recover money", 1, `Get the registration receipt for "${d.Description}" (${money(d.Amount, 2)})`,
+      `Check the unit number on the receipt matches your truck and that you aren't paying for the same registration twice. Registrations should also be prorated if the truck leaves the carrier.`, d.Amount));
+    const travel = X.filter((d) => d.Category === "Safety / Driver Travel");
+    if (travel.length) add(`travel-${id}`, "Recover money", 1, `Dispute ${money(travel.reduce((t, d) => t + d.Amount, 0), 2)} of driver travel on ${id}`,
+      `${travel.map((d) => d.Description).join("; ")}. Ask ${s.Carrier} to show where your agreement says the owner pays travel for drivers — especially drivers who aren't on your truck.`, travel.reduce((t, d) => t + d.Amount, 0));
+    X.filter((d) => d.Category === "Salary Adjustment" || d.Category === "Other" || d.Category === "Cash Advance").forEach((d, i) => add(`unexpl-${id}-${i}`, "Recover money", 2, `Ask ${s.Carrier} to explain "${d.Description}" (${money(d.Amount, 2)}) on ${id}`,
+      `Unexplained charges tend to repeat. Get a written explanation and keep it with the statement.`, d.Amount));
+    L.filter((l) => !(l.TotalMiles > 0)).forEach((l) => add(`zero-${id}-${l.LoadID}`, "Paperwork", 3, `Confirm what load ${l.LoadID} (${money(l.Gross)}, 0 miles) was for`,
+      `Probably a TONU/layover. Make sure it's on the right truck and week and that the driver was paid fairly for it.`, 0));
+  });
+  TRUCKS.forEach((t) => {
+    const x = at("all", t), weeks = new Set(x.S.map((s) => s.WeekStart)).size || 1, mpw = x.miles / weeks;
+    if (x.dGal > 0 && x.mpg < 6.5) add(`mpg-${t}`, "Cut costs", 2, `Truck ${t}: raise fuel economy from ${x.mpg.toFixed(2)} to 6.5+ MPG`,
+      `Pull the ELD idle report (aim < 15% idle), check tire pressure every week, set cruise at 62–65 mph, and look for an APU or idle-reduction policy. Worth about ${money((x.dGal - x.miles / 6.5) * (x.dCost / x.dGal))} over the period you've uploaded.`, (x.dGal - x.miles / 6.5) * (x.dCost / x.dGal));
+    if (x.dh > 0.15) add(`dh-${t}`, "Earn more", 2, `Truck ${t}: get deadhead from ${pct(x.dh)} to under 15%`,
+      `Ask dispatch to book the next load before delivery and keep empty legs under ~75 miles. Turn down loads whose empty miles make the all-in rate fall under ${pm(target)}/mi.`, (x.empty - 0.15 * x.miles) * all.cpm);
+    if (mpw < 2500 && x.L.length) add(`util-${t}`, "Earn more", 2, `Truck ${t} averages only ${num(mpw)} mi/week — target 2,500–3,000`,
+      `Fixed fees (~$700/week + insurance) are the same whether the truck runs or sits. Talk to dispatch about longer lanes or back-to-back loads, and check the driver's available hours.`, (2750 - mpw) * (all.rpm - all.cpm) * weeks);
+    if (x.miles > 0 && x.maint / x.miles > 0.1) add(`maint-${t}`, "Cut costs", 3, `Truck ${t}: compare maintenance prices (${pm(x.maint / x.miles)}/mi so far)`,
+      `Ask for itemised invoices. A Class 8 oil change is usually $300–$450; get two quotes before the next service and keep a maintenance log by odometer.`, 0);
+    WEEKS.forEach((w) => { const y = at(w, t); if (y.dGal > 0 && y.mpg > 9) add(`fuel-${t}-${w}`, "Paperwork", 2, `Get the full fuel report for truck ${t}, ${WLABEL[w]}`,
+      `Only ${num(y.dGal, 0)} gal for ${num(y.miles)} miles is on the statement. Find the missing fuel (receipts, another card, next week's bill) so profit isn't overstated.`, 0); });
+  });
+  const cheap = D.loads.filter((l) => l.TotalMiles > 0 && l.RPM < all.cpm);
+  if (cheap.length) add(`minrate`, "Earn more", 1, `Set a minimum rate of ${pm(target)}/mile (all miles) with every dispatcher`,
+    `Your cost per mile is ${pm(all.cpm)}; ${cheap.length} load(s) paid less than that. A floor of cost + $0.35 protects profit. Write it down and send it to dispatch.`, cheap.reduce((a, l) => a + (all.cpm - l.RPM) * l.TotalMiles, 0));
+  const vklRetail = D.fuel.filter((f) => f.Product === "Diesel" && !(f.Discount > 0));
+  const byCarrier = {}; vklRetail.forEach((f) => { const c = carrierOf(f.SettlementID); byCarrier[c] = (byCarrier[c] || 0) + f.Gallons; });
+  Object.entries(byCarrier).forEach(([c, g]) => { if (g > 100) add(`fueldisc-${c}`, "Cut costs", 2, `Ask ${c} for a fuel card discount`,
+    `${num(g, 0)} gal were billed at full retail. Other carriers' cards are saving you ~$0.30–0.70/gal — that's ${money(g * 0.4)}+ on these gallons alone.`, g * 0.4); });
+  const mw = WEEKS[WEEKS.length - 1];
+  flags.filter((f) => f.amt === "missing" && f.wk === mw).forEach((f) => add(`missing-${f.title}`, "Paperwork", 1, f.title.replace(":", " —") + " — get it and upload it", f.body, 0));
+  add(`routine-${mw}`, "Weekly routine", 3, `Weekly review for ${WLABEL[mw] || "this week"}: upload all statements, clear red flags, send disputes`, `Set a fixed time each week (e.g. the day statements arrive). 20 minutes a week keeps hundreds of dollars from slipping.`, 0);
+  carrier = saveC;
+  return A.sort((a, b) => (doneMap[a.key]?.done ? 1 : 0) - (doneMap[b.key]?.done ? 1 : 0) || a.pri - b.pri || b.impact - a.impact);
+}
+function actionItem(a) {
+  const done = doneMap[a.key]?.done;
+  return `<li class="action ${done ? "done" : ""}"><label><input type="checkbox" data-act="${esc(a.key)}" ${done ? "checked" : ""} ${db && canWrite ? "" : "disabled"}>
+    <span><span class="pill">${esc(a.cat)}</span>${a.pri === 1 ? '<span class="pill bad">do first</span>' : ""}<br><b>${esc(a.title)}</b><br><span class="muted">${esc(a.why)}</span></span></label>
+    <span class="amt">${a.impact > 1 ? money(a.impact) : ""}</span></li>`;
+}
+function renderMentor(flags) {
+  const A = buildActions(flags), open = A.filter((a) => !doneMap[a.key]?.done);
+  const worth = open.reduce((t, a) => t + (a.impact > 1 ? a.impact : 0), 0);
+  $("#mentorSummary").innerHTML = `<b>${open.length}</b> open action${open.length === 1 ? "" : "s"} · about <b>${money(worth)}</b> at stake · ${A.length - open.length} done`;
+  $("#actions").innerHTML = A.map(actionItem).join("") || `<li class="muted">Nothing to do — great week.</li>`;
+  $("#topActions").innerHTML = open.slice(0, 3).map(actionItem).join("") || `<li class="muted">All caught up. 👍</li>`;
+}
+document.addEventListener("change", async (e) => {
+  const cb = e.target.closest("input[data-act]"); if (!cb || !db) return;
+  const key = cb.dataset.act, path = "actions/" + key.replace(/[^A-Za-z0-9_\-.~:@+]/g, "-").slice(0, 190);
+  doneMap[key] = { done: cb.checked, at: new Date().toISOString() }; render();
+  try { await db.doc(path).set({ key, done: cb.checked, at: doneMap[key].at }); } catch (err) { setStatus("err", "Couldn't save checkbox: " + (err.message || err.code)); }
+});
+
+// ---- Mentor: ask Claude ----
+function mentorContext(flags) {
+  const save = week, saveC = carrier; carrier = "all";
+  const at = (w, t) => { week = w; const r = m(t); week = save; return r; };
+  const r2 = (v) => (ok(v) ? Math.round(v * 100) / 100 : null);
+  const pick = (x) => ({ statements: x.S.length, loads: x.L.length, miles: r2(x.miles), gross: r2(x.gross), rpm: r2(x.rpm), cpm: r2(x.cpm), operatingProfit: r2(x.profit), margin: r2(x.margin), mpg: r2(x.mpg), deadheadPct: r2(x.dh), fuelPerMile: r2(x.fpm), maintenance: r2(x.maint), tolls: r2(x.tolls), oneTimeCharges: r2(x.oneTime), netPay: r2(x.net) });
+  const ctx = { fleet: pick(at("all")), byWeek: WEEKS.map((w) => ({ week: WLABEL[w], ...pick(at(w)) })),
+    byTruck: TRUCKS.map((t) => ({ truck: t, driver: DRIVER[t], carriers: [...new Set(D.settlements.filter((s) => s.TruckID === t).map((s) => s.Carrier))], ...pick(at("all", t)) })),
+    redFlags: flags.slice(0, 20).map((f) => `${f.sev}: ${f.title} — ${f.body}`),
+    openActions: buildActions(flags).filter((a) => !doneMap[a.key]?.done).map((a) => a.title) };
+  carrier = saveC; return ctx;
+}
+let mentorAbort = null;
+async function askMentor(question) {
+  if (!sample) { $("#mentorOut").innerHTML = `<p class="bad">Claude isn't available in this view (open the page on claude.ai while signed in).</p>`; return; }
+  mentorAbort?.abort(); mentorAbort = new AbortController();
+  const ctx = mentorContext(computeFlags()), btn = $("#askMentor"); btn.disabled = true;
+  $("#mentorOut").innerHTML = `<p class="muted">Thinking…</p>`;
+  const promptText = `You are a blunt, practical trucking business mentor coaching an owner-operator who runs a few trucks leased onto carriers (they get weekly "Truck Owner Settlement" statements). Use ONLY the numbers below; never invent data. Speak plainly, like a mentor who has run trucks for 20 years.
+${question ? `The owner asks: "${question}"\nAnswer that first, then give the rest briefly.` : `Give this week's coaching.`}
+Format (plain text, short lines, no markdown tables):
+1. VERDICT — one sentence on how the business is doing.
+2. TOP 3 THINGS TO DO THIS WEEK — numbered, each with who to call/what to say and the $ at stake.
+3. WATCH LIST — 2–3 numbers to watch next week with target values.
+4. ONE HABIT — one routine to build.
+Keep it under 250 words.
+
+DATA (JSON):
+${JSON.stringify(ctx)}`;
+  try {
+    const res = await sample(promptText, { signal: mentorAbort.signal, modelTier: "default", cache: false, onText: ({ text }) => { $("#mentorOut").textContent = text; } });
+    $("#mentorOut").textContent = res.text;
+    if (db && canWrite) db.doc("mentor/latest").set({ text: res.text, question: question || "", at: new Date().toISOString() }).catch(() => {});
+    $("#mentorWhen").textContent = "Just now";
+  } catch (err) {
+    if (err?.name === "AbortError") return;
+    $("#mentorOut").innerHTML = `<p class="bad">${err.code === "not_granted" ? "Permission to use Claude was declined." : err.code === "rate_limited" ? "Too many requests — try again in a minute." : esc(err.message || err.code || err)}</p>`;
+  } finally { btn.disabled = false; }
+}
+$("#askMentor").addEventListener("click", () => askMentor($("#mentorQ").value.trim()));
+$("#mentorQ").addEventListener("keydown", (e) => { if (e.key === "Enter") askMentor($("#mentorQ").value.trim()); });
 
 const _render = render;
 render = function () {
@@ -778,7 +1023,7 @@ render = function () {
   if (!D.settlements.length) return;
   _render();
   const save = week; $("#autoFlags").innerHTML = flagList(flags.filter((f) => (week === "all" || !f.wk || f.wk === week) && (carrier === "all" || !f.wk || f.title.match(/Truck (\S+)/) && visTrucks().includes(f.title.match(/Truck (\S+)/)[1]))), "No red flags. 👍");
-  renderTrends(); stmtTable();
+  renderTrends(); stmtTable(); renderLines(); renderMentor(flags);
 };
 
 // ---- database ----
@@ -805,6 +1050,8 @@ setData(window.FLEET); showTab(); // instant first paint from the bundled copy
   try { sample = await window.claude.use("sample"); } catch { sample = null; }
   if (!canWrite) $("#drop").style.display = "none";
   let timer = setTimeout(() => setStatus("err", "Database not reachable yet — showing bundled copy"), 10000);
+  db.collection("actions").onSnapshot((snap) => { doneMap = {}; snap.docs.forEach((d) => { const v = d.data(); if (v && v.key) doneMap[v.key] = v; }); if (D) render(); }, () => {});
+  db.doc("mentor/latest").get().then((d) => { if (d.exists && d.data().text) { $("#mentorOut").textContent = d.data().text; $("#mentorWhen").textContent = "Last coaching: " + new Date(d.data().at).toLocaleString() + (d.data().question ? ` — “${d.data().question}”` : ""); } }).catch(() => {});
   db.collection("settlements").onSnapshot((snap) => {
     if (snap.metadata.fromCache && snap.empty) return;
     if (!snap.metadata.fromCache) { clearTimeout(timer); }
