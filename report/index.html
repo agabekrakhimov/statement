@@ -172,6 +172,36 @@ a { color: var(--s1); }
 .wi-parts { display: flex; flex-wrap: wrap; gap: 6px; }
 .wi-parts .pill { margin: 0; }
 @media (max-width: 560px) { .wi { grid-template-columns: 1fr 64px; } .wi-l { grid-column: 1 / -1; } .wi-row { grid-template-columns: 90px 1fr 80px; } .ov-value #ovValue { font-size: 32px; } .two { grid-template-columns: 1fr; } .wi-gains b { font-size: 16px; } }
+.truck-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.tpick { display: grid; gap: 3px; text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; min-width: 0; }
+.tpick.on { border-color: var(--s1); box-shadow: 0 0 0 1px var(--s1) inset; }
+.tpick:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+.tp-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tp-model { color: var(--text-secondary); }
+.row-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.prof { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; margin: 12px 0; }
+.prof dt { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.prof dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.note { background: var(--surface-2); padding: 10px; border-radius: 8px; color: var(--text-secondary); }
+.pform { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
+.pform label { display: grid; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+.pform input, .pform select { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; min-width: 0; }
+.pform .wide, .pform-actions { grid-column: 1 / -1; }
+.svc { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.svc li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border-left: 3px solid transparent; flex-wrap: wrap; }
+.svc li > div { display: grid; gap: 2px; min-width: 0; }
+.svc .svc-r { text-align: right; justify-items: end; }
+.svc-overdue { border-left-color: var(--critical) !important; } .svc-soon { border-left-color: var(--warning) !important; } .svc-ok { border-left-color: var(--good) !important; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.chip.critical { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-text); }
+.chip.warning { background: color-mix(in srgb, var(--warning) 25%, transparent); color: var(--text-primary); }
+.chip.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good-text); }
+.chip.none { background: var(--surface-1); color: var(--text-muted); border: 1px solid var(--border); }
+td.wrap { white-space: normal; min-width: 160px; }
+.mks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.mk, .fund > div { display: grid; gap: 2px; background: var(--surface-2); padding: 10px; border-radius: 8px; }
+.mk b, .fund b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.fund { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
 footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 </style>
 </head>
@@ -197,6 +227,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     <a href="#overview" data-tab="overview">Overview</a>
     <a href="#this-week" data-tab="this-week">This week</a>
     <a href="#mentor" data-tab="mentor">Mentor</a>
+    <a href="#trucks" data-tab="trucks">Trucks &amp; maintenance</a>
     <a href="#dashboard" data-tab="dashboard">Dashboard</a>
     <a href="#trends" data-tab="trends">Week by week</a>
     <a href="#loads" data-tab="loads">Loads &amp; fuel</a>
@@ -247,6 +278,29 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
           <p class="muted" id="wiBase"></p>
         </div>
       </div>
+    </section>
+  </div>
+
+  <!-- ===================== TRUCKS ===================== -->
+  <div class="panel" data-panel="trucks">
+    <section class="truck-pick" id="truckPick" aria-label="Pick a truck"></section>
+    <section class="grid two">
+      <div class="card" id="truckProfile"></div>
+      <div class="card">
+        <h2>Service schedule</h2>
+        <p class="muted">Next due is counted from the last service by odometer, or by statement miles when no odometer was written down.</p>
+        <div id="svcSched"></div>
+      </div>
+    </section>
+    <section class="card full">
+      <div class="row-head"><h2>Maintenance history</h2><button class="btn primary" id="addMaintBtn">+ Add service or repair</button></div>
+      <p class="muted">Repairs and oil changes billed on your statements appear here automatically. Add the ones you paid yourself, with the odometer reading.</p>
+      <div id="maintForm" hidden></div>
+      <div class="tablewrap"><table id="maintTable"></table></div>
+    </section>
+    <section class="grid two">
+      <div class="card"><h2>Maintenance cost</h2><div class="mks" id="maintKpis"></div><div id="maintChart"></div></div>
+      <div class="card"><h2>Repair fund</h2><div id="reserve"></div></div>
     </section>
   </div>
 
@@ -839,6 +893,11 @@ function computeFlags() {
       if (cheap.length) add("warning", `Truck ${t}, ${WLABEL[w]}: ${cheap.length} load(s) paid less than your ${pm(fleetAll.cpm)}/mi cost`, cheap.map((l) => `${l.Pickup} → ${l.Delivery} ${pm(l.RPM)}/mi`).join("; ") + ".", money(cheap.reduce((a, l) => a + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0)), cheap.reduce((a, l) => a + (fleetAll.cpm - l.RPM) * l.TotalMiles, 0), w);
     });
   });
+  const lastW = WEEKS[WEEKS.length - 1];
+  if (typeof truckKeys === "function") truckKeys().forEach((t) => schedule(t).forEach((i) => {
+    if (i.st === "overdue") add("serious", `${t.startsWith("VIN") ? t : "Truck " + t}: ${i.label} overdue`, `${i.next}. Book it before it turns into a breakdown.`, "service", 500, lastW);
+    else if (i.st === "soon") add("warning", `${t.startsWith("VIN") ? t : "Truck " + t}: ${i.label} due soon`, `Due ${i.next}. Plan it around the next home time.`, "service", 100, lastW);
+  }));
   carrier = saveC;
   const SEV = { critical: 0, serious: 1, warning: 2 };
   return out.sort((a, b) => SEV[a.sev] - SEV[b.sev] || b.score - a.score);
@@ -918,12 +977,12 @@ $("#stmtTable").addEventListener("click", async (e) => {
 });
 
 // ---- tabs (hash routing) ----
-const TABS = ["overview", "this-week", "mentor", "dashboard", "trends", "loads", "statements"];
+const TABS = ["overview", "this-week", "mentor", "trucks", "dashboard", "trends", "loads", "statements"];
 function showTab() {
   const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === t));
   document.querySelectorAll("#tabs a").forEach((a) => a.setAttribute("aria-selected", a.dataset.tab === t));
-  $("#filterbar").style.display = t === "this-week" || t === "mentor" || t === "overview" ? "none" : "";
+  $("#filterbar").style.display = ["this-week", "mentor", "overview", "trucks"].includes(t) ? "none" : "";
   if (D) render();
   if (D && t === "overview") renderOverview();
 }
@@ -1232,6 +1291,163 @@ $("#ovSeries").addEventListener("click", (e) => { const b = e.target.closest("[d
 buildWhatIf();
 let ovRz; window.addEventListener("resize", () => { clearTimeout(ovRz); ovRz = setTimeout(() => { if (D && document.querySelector('[data-panel="overview"].active')) renderOverview(); }, 200); });
 
+// ---- Trucks: profiles, service schedule, maintenance log, repair fund ----
+let VEH = [], MAINT = [], selTruck = null, editProfile = false, maintEdit = null, maintDel = null;
+const SVC = [
+  { key: "oil", label: "Oil & filter change", miles: 20000, re: /oil change|oil & filter|pm-?a\b/i },
+  { key: "lube", label: "Chassis lube & brake check", miles: 15000, re: /lube|grease|brake/i },
+  { key: "fuelf", label: "Fuel filters", miles: 50000, re: /fuel filter/i },
+  { key: "tires", label: "Tire rotation / inspection", miles: 50000, re: /tire/i },
+  { key: "dot", label: "Annual DOT inspection", days: 365, re: /\bdot\b|annual inspection/i },
+  { key: "airdryer", label: "Air dryer cartridge", days: 365, re: /air dryer/i },
+  { key: "coolant", label: "Coolant test", days: 180, re: /coolant/i },
+  { key: "dpf", label: "DPF cleaning", miles: 250000, re: /dpf/i },
+];
+const MTYPES = [...SVC.map((s) => [s.key, s.label]), ["repair", "Repair"], ["fluids", "Oil / fluids top-up"], ["other", "Other"]];
+const typeLabel = (k) => (MTYPES.find((t) => t[0] === k) || [k, k])[1];
+// vehicles: docs at vehicles/<VIN or unit-N>; a vehicle shows under its unit number once linked
+const vkey = (v) => v.unit ? String(v.unit) : "VIN …" + String(v.vin || v._id || "").slice(-6);
+const prof = (t) => VEH.find((v) => vkey(v) === t) || {};
+function truckKeys() { return [...TRUCKS, ...VEH.map(vkey).filter((k) => !TRUCKS.includes(k)).sort()]; }
+const DAY = 864e5, today = () => new Date().toISOString().slice(0, 10);
+const dlabel = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "—";
+// statement maintenance lines become history entries automatically
+function stmtMaint() {
+  return D.deductions.filter((d) => d.Category === "Maintenance").map((d) => {
+    const dm = d.Description.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const date = dm ? `${dm[3]}-${dm[1].padStart(2, "0")}-${dm[2].padStart(2, "0")}` : d.WeekStart;
+    const inv = (d.Description.match(/inv(?:oice)?(?: id)?:?\s*#?\s*([A-Za-z0-9-]+)/i) || [])[1] || "";
+    const type = /oil change/i.test(d.Description) ? "oil" : /engine oil|fluid|def\b/i.test(d.Description) ? "fluids" : (SVC.find((s) => s.re.test(d.Description)) || { key: "repair" }).key;
+    return { id: "stmt-" + d.DeductionID, truck: d.TruckID, date, odometer: null, type, desc: d.Description, vendor: "", invoice: inv, cost: d.Amount, source: d.SettlementID };
+  });
+}
+function allMaint(t) {
+  const stored = MAINT.filter((x) => !t || x.truck === t), ids = new Set(stored.map((x) => x.id));
+  return stmtMaint().filter((x) => (!t || x.truck === t) && !ids.has(x.id)).concat(stored.filter((x) => !x.deleted))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+}
+function milesAfter(t, date) {
+  return D.loads.filter((l) => l.TruckID === t && ((l.DeliveryDate || l.PickupDate || l.WeekStart) > date)).reduce((s, l) => s + (l.TotalMiles || 0), 0);
+}
+function truckMilesPerWeek(t) { const x = at2("all", t), w = new Set(x.S.map((s) => s.WeekStart)).size || 1; return x.miles / w; }
+function estOdo(t) { const p = prof(t); return p.odometer ? +p.odometer + milesAfter(t, p.odometerDate || "0000") : null; }
+function schedule(t) {
+  const p = prof(t), hist = allMaint(t), odo = estOdo(t), mpw = truckMilesPerWeek(t);
+  const items = SVC.map((s) => {
+    const iv = s.key === "oil" && +p.oilInterval ? +p.oilInterval : s.miles, last = hist.find((h) => h.type === s.key);
+    let st = "none", next = "Add the last time this was done", since = null, left = null;
+    if (last) {
+      if (iv) {
+        since = last.odometer && odo ? odo - last.odometer : milesAfter(t, last.date);
+        left = iv - since;
+        const wk = mpw > 0 ? left / mpw : null;
+        st = left < 0 ? "overdue" : left < Math.max(2000, iv * 0.1) ? "soon" : "ok";
+        next = left < 0 ? `${num(-left)} mi overdue` : `in ${num(left)} mi${wk != null && wk < 52 ? ` · about ${dlabel(new Date(Date.now() + wk * 7 * DAY).toISOString().slice(0, 10))}` : ""}`;
+        if (last.odometer) next += ` · at ${num(+last.odometer + iv)} mi`;
+      } else {
+        const due = new Date(new Date(last.date + "T00:00:00Z").getTime() + s.days * DAY), dl = Math.round((due - Date.now()) / DAY);
+        st = dl < 0 ? "overdue" : dl < 30 ? "soon" : "ok"; next = `${dl < 0 ? -dl + " days overdue" : "in " + dl + " days"} · ${dlabel(due.toISOString().slice(0, 10))}`;
+      }
+    }
+    return { ...s, iv, last, st, next, since };
+  });
+  if (p.regExpiry) { const dl = Math.round((new Date(p.regExpiry + "T00:00:00Z") - Date.now()) / DAY);
+    items.push({ key: "reg", label: "Registration / plates", st: dl < 0 ? "overdue" : dl < 30 ? "soon" : "ok", next: `${dl < 0 ? "expired " + -dl + " days ago" : "expires in " + dl + " days"} · ${dlabel(p.regExpiry)}`, last: null }); }
+  return items;
+}
+const CHIP = { overdue: ["critical", "Overdue"], soon: ["warning", "Due soon"], ok: ["good", "OK"], none: ["none", "No record"] };
+function chip(st) { const [c, l] = CHIP[st]; return `<span class="chip ${c}">${c === "critical" ? "▲" : c === "warning" ? "!" : c === "good" ? "✓" : "?"} ${l}</span>`; }
+
+function renderTrucks() {
+  const KEYS = truckKeys(); if (!KEYS.length) return;
+  if (!selTruck || !KEYS.includes(selTruck)) selTruck = KEYS[0];
+  $("#truckPick").innerHTML = KEYS.map((t) => {
+    const p = prof(t), sc = schedule(t), od = sc.filter((i) => i.st === "overdue").length, so = sc.filter((i) => i.st === "soon").length, odo = estOdo(t);
+    return `<button class="tpick ${t === selTruck ? "on" : ""}" data-truck="${esc(t)}" aria-pressed="${t === selTruck}">
+      <span class="tp-top"><span class="swatch" style="background:${TC[t] || "var(--text-muted)"}"></span><b>${t.startsWith("VIN") ? esc(t) : "Truck " + esc(t)}</b>${od ? chip("overdue") : so ? chip("soon") : ""}</span>
+      <span class="tp-model">${esc([p.year, p.make, p.model].filter(Boolean).join(" ") || "Add truck details")}</span>
+      <span class="muted">${p.vin ? "VIN …" + esc(String(p.vin).slice(-6)) + " · " : ""}${odo ? "≈ " + num(odo) + " mi" : t.startsWith("VIN") ? "Not linked to a unit yet" : "Odometer not set"}${DRIVER[t] ? " · " + esc(DRIVER[t]) : ""}</span></button>`;
+  }).join("");
+  const t = selTruck, p = prof(t);
+  // profile
+  const F = [["unit", "Unit number"], ["vin", "VIN"], ["year", "Year"], ["make", "Make"], ["model", "Model"], ["plate", "Plate / state"], ["titleNo", "Title no."], ["owner", "Owner"],
+    ["purchaseDate", "Purchased", "date"], ["purchasePrice", "Purchase price", "number"], ["lienholder", "Lienholder"], ["lienDate", "Lien date", "date"], ["payment", "Monthly payment", "number"],
+    ["odometer", "Odometer reading", "number"], ["odometerDate", "Odometer read on", "date"], ["oilInterval", "Oil change every (mi)", "number"], ["regExpiry", "Registration expires", "date"], ["notes", "Notes"]];
+  const show = (k, typ) => { const v = p[k]; if (v == null || v === "") return `<span class="muted">—</span>`; return typ === "date" ? dlabel(v) : (k === "purchasePrice" || k === "payment") ? money(+v) : (k === "odometer" || k === "oilInterval") ? num(+v) : esc(v); };
+  $("#truckProfile").innerHTML = `<div class="row-head"><h2>${t.startsWith("VIN") ? esc(t) : "Truck " + esc(t)} profile</h2>${canWrite && db ? `<button class="btn" id="editProf">${editProfile ? "Cancel" : "Edit"}</button>` : ""}</div>` +
+    (editProfile ? `<form id="profForm" class="pform">${F.map(([k, l, typ]) => `<label for="pf-${k}"><span>${l}</span><input id="pf-${k}" name="${k}" type="${typ || "text"}" value="${esc(p[k] ?? (k === "unit" && !t.startsWith("VIN") ? t : ""))}" ${typ === "number" ? 'step="any"' : ""} ${k === "unit" ? 'list="unitList" placeholder="e.g. 777"' : ""}></label>`).join("")}
+      <datalist id="unitList">${TRUCKS.map((u) => `<option value="${esc(u)}">`).join("")}</datalist>
+      <p class="muted wide">Unit number links this truck to its statements and maintenance (e.g. 777). VIN is on the title.</p>
+      <div class="pform-actions"><button class="btn primary" type="submit">Save profile</button></div></form>`
+    : `<dl class="prof">${F.filter(([k]) => k !== "notes" && k !== "unit").map(([k, l, typ]) => `<div><dt>${l}</dt><dd>${show(k, typ)}</dd></div>`).join("")}</dl>
+      <p class="muted">${estOdo(t) ? `Estimated odometer today: <b>${num(estOdo(t))} mi</b> (last reading + statement miles since).` : "Enter an odometer reading so services can be tracked by odometer. Until then, miles are counted from your statements."}</p>
+      ${p.notes ? `<p class="note">${esc(p.notes)}</p>` : ""}`);
+  // schedule
+  const sc = schedule(t);
+  $("#svcSched").innerHTML = `<ul class="svc">${sc.map((i) => `<li class="svc-${i.st}"><div><b>${i.label}</b><span class="muted">${i.iv ? "every " + num(i.iv) + " mi" : i.days ? "every " + (i.days >= 365 ? "year" : i.days + " days") : ""}${i.last ? " · last " + dlabel(i.last.date) + (i.last.odometer ? " at " + num(+i.last.odometer) + " mi" : i.since != null ? ", " + num(i.since) + " mi ago" : "") : ""}</span></div>
+    <div class="svc-r">${chip(i.st)}<span class="muted">${i.next}</span></div></li>`).join("")}</ul>`;
+  // history
+  const H = allMaint(t);
+  $("#maintTable").innerHTML = `<thead><tr><th class="left">Date</th><th>Odometer</th><th class="left">Service</th><th class="left">Details</th><th class="left">Shop / invoice</th><th>Cost</th><th class="left">Source</th><th></th></tr></thead><tbody>` +
+    (H.length ? H.map((h) => `<tr><td class="left">${dlabel(h.date)}</td><td>${h.odometer ? num(+h.odometer) : "—"}</td><td class="left">${esc(typeLabel(h.type))}</td><td class="left wrap">${esc(h.desc)}</td>
+      <td class="left wrap">${esc([h.vendor, h.invoice && "#" + h.invoice].filter(Boolean).join(" · ") || "—")}</td><td>${money(+h.cost || 0, 2)}</td><td class="left">${h.source ? `<span class="pill">${esc(h.source)}</span>` : '<span class="pill">You</span>'}</td>
+      <td>${canWrite && db ? `<button class="btn" data-medit="${esc(h.id)}">Edit</button>${h.id.startsWith("m-") ? ` <button class="btn danger" data-mdel="${esc(h.id)}">${maintDel === h.id ? "Confirm" : "Delete"}</button>` : ""}` : ""}</td></tr>`).join("")
+      : `<tr><td colspan="8" class="left muted">No maintenance recorded yet. Add the last oil change, DOT inspection and tire work to start the schedule.</td></tr>`) + "</tbody>";
+  // form
+  if (maintEdit) {
+    const e = maintEdit;
+    $("#maintForm").hidden = false;
+    $("#maintForm").innerHTML = `<form id="mForm" class="pform">
+      <label for="mf-date"><span>Date</span><input id="mf-date" type="date" required value="${esc(e.date || today())}"></label>
+      <label for="mf-odo"><span>Odometer (mi)</span><input id="mf-odo" type="number" step="1" value="${esc(e.odometer ?? "")}" placeholder="e.g. 412350"></label>
+      <label for="mf-type"><span>Service</span><select id="mf-type">${MTYPES.map(([k, l]) => `<option value="${k}" ${k === e.type ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label for="mf-cost"><span>Cost ($)</span><input id="mf-cost" type="number" step="0.01" value="${esc(e.cost ?? "")}"></label>
+      <label for="mf-vendor"><span>Shop</span><input id="mf-vendor" value="${esc(e.vendor || "")}" placeholder="e.g. TA Truck Service, Macon GA"></label>
+      <label for="mf-inv"><span>Invoice #</span><input id="mf-inv" value="${esc(e.invoice || "")}"></label>
+      <label for="mf-desc" class="wide"><span>Details</span><input id="mf-desc" value="${esc(e.desc || "")}" placeholder="What was done, parts replaced, warranty…"></label>
+      <div class="pform-actions"><button class="btn primary" type="submit">Save</button> <button class="btn" type="button" id="mfCancel">Cancel</button></div></form>`;
+  } else { $("#maintForm").hidden = true; $("#maintForm").innerHTML = ""; }
+  // cost + fund
+  const x = at2("all", t), spent = H.reduce((s, h) => s + (+h.cost || 0), 0), rate = 0.15, should = x.miles * rate;
+  $("#maintKpis").innerHTML = `<div class="mk"><span class="muted">Spent (recorded)</span><b>${money(spent, 2)}</b></div><div class="mk"><span class="muted">Per mile</span><b>${x.miles ? "$" + (spent / x.miles).toFixed(3) : "—"}</b></div><div class="mk"><span class="muted">Services logged</span><b>${H.length}</b></div>`;
+  const byType = {}; H.forEach((h) => (byType[typeLabel(h.type)] = (byType[typeLabel(h.type)] || 0) + (+h.cost || 0)));
+  const rows = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([l, v]) => ({ label: l, value: v, color: TC[t], tip: `<b>${esc(l)}</b><br>${money(v, 2)}` }));
+  if (rows.length) hbars("#maintChart", rows, { fmt: (v) => money(v) }); else $("#maintChart").innerHTML = "";
+  $("#reserve").innerHTML = `<p>Set aside <b>$0.15 for every mile</b> for repairs. Big bills (tires ~$4,000, injectors ~$5,000, a DPF ~$6,000) come all at once.</p>
+    <div class="fund"><div><span class="muted">Miles on statements</span><b>${num(x.miles)}</b></div><div><span class="muted">Should be set aside</span><b>${money(should)}</b></div><div><span class="muted">Spent so far</span><b>${money(spent)}</b></div><div><span class="muted">Fund balance</span><b class="${should - spent < 0 ? "lose" : "win"}">${money(should - spent)}</b></div></div>
+    ${p.payment ? `<p class="muted">Truck payment ${money(+p.payment)}/month ≈ ${pm((+p.payment * 12 / 52) / Math.max(1, truckMilesPerWeek(t)))} per mile. That isn't on your statements, so your real profit per mile is lower by this much.</p>` : `<p class="muted">Add the monthly truck payment in the profile to see it as a cost per mile.</p>`}`;
+}
+// events
+$("#truckPick").addEventListener("click", (e) => { const b = e.target.closest("[data-truck]"); if (!b) return; selTruck = b.dataset.truck; editProfile = false; maintEdit = null; renderTrucks(); });
+$("#truckProfile").addEventListener("click", (e) => { if (e.target.id === "editProf") { editProfile = !editProfile; renderTrucks(); } });
+$("#truckProfile").addEventListener("submit", async (e) => {
+  e.preventDefault(); const f = new FormData(e.target), t = selTruck, old = prof(t), data = {};
+  for (const [k, v] of f.entries()) data[k] = v.trim ? v.trim() : v;
+  data.vin = (data.vin || "").toUpperCase().replace(/\s/g, ""); data.unit = (data.unit || "").replace(/\s/g, "");
+  if (!data.unit && !t.startsWith("VIN") && !old._id) data.unit = t;
+  const id = (old._id || data.vin || "unit-" + data.unit).replace(/[^A-Za-z0-9_\-.~:@+]/g, "-");
+  if (!data.vin && !data.unit) { setStatus("err", "Enter a unit number or a VIN."); return; }
+  const clash = VEH.find((v) => v._id !== id && v.unit && v.unit === data.unit);
+  if (clash) { setStatus("err", `Unit ${data.unit} is already linked to VIN ${clash.vin || clash._id}. Clear it there first.`); return; }
+  try { await db.doc("vehicles/" + id).set(data); VEH = VEH.filter((v) => v._id !== id).concat([{ ...data, _id: id }]); selTruck = vkey({ ...data, _id: id }); editProfile = false; render(); }
+  catch (err) { setStatus("err", "Couldn't save the profile: " + (err.message || err.code)); }
+});
+$("#addMaintBtn").addEventListener("click", () => { maintEdit = { id: "m-" + Date.now().toString(36), truck: selTruck, type: "oil" }; renderTrucks(); $("#mf-date")?.focus(); });
+$("#maintTable").addEventListener("click", async (e) => {
+  const ed = e.target.closest("[data-medit]"), dl = e.target.closest("[data-mdel]");
+  if (ed) { maintEdit = { ...allMaint(selTruck).find((h) => h.id === ed.dataset.medit) }; renderTrucks(); $("#maintForm").scrollIntoView({ block: "nearest" }); }
+  if (dl) { const id = dl.dataset.mdel; if (maintDel !== id) { maintDel = id; renderTrucks(); return; } maintDel = null;
+    try { await db.doc("maint/" + id).delete(); MAINT = MAINT.filter((x) => x.id !== id); render(); } catch (err) { setStatus("err", "Couldn't delete: " + (err.message || err.code)); } }
+});
+$("#maintForm").addEventListener("click", (e) => { if (e.target.id === "mfCancel") { maintEdit = null; renderTrucks(); } });
+$("#maintForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); const v = (id) => $("#" + id).value.trim();
+  const d = { id: maintEdit.id, truck: maintEdit.truck, source: maintEdit.source || "", date: v("mf-date"), odometer: v("mf-odo") ? +v("mf-odo") : null, type: v("mf-type"),
+    cost: v("mf-cost") ? +v("mf-cost") : 0, vendor: v("mf-vendor"), invoice: v("mf-inv"), desc: v("mf-desc"), at: new Date().toISOString() };
+  try { await db.doc("maint/" + d.id).set(d); MAINT = MAINT.filter((x) => x.id !== d.id).concat([d]); maintEdit = null; render(); }
+  catch (err) { setStatus("err", "Couldn't save: " + (err.message || err.code)); }
+});
+
 const _render = render;
 render = function () {
   if (!D) return;
@@ -1240,7 +1456,7 @@ render = function () {
   if (!D.settlements.length) return;
   _render();
   const save = week; $("#autoFlags").innerHTML = flagList(flags.filter((f) => (week === "all" || !f.wk || f.wk === week) && (carrier === "all" || !f.wk || f.title.match(/Truck (\S+)/) && visTrucks().includes(f.title.match(/Truck (\S+)/)[1]))), "No red flags. 👍");
-  renderTrends(); stmtTable(); renderLines(); renderMentor(flags); renderOverview(); renderWhatIf();
+  renderTrends(); stmtTable(); renderLines(); renderMentor(flags); renderOverview(); renderWhatIf(); renderTrucks();
 };
 
 // ---- database ----
@@ -1267,6 +1483,8 @@ setData(window.FLEET); showTab(); // instant first paint from the bundled copy
   try { sample = await window.claude.use("sample"); } catch { sample = null; }
   if (!canWrite) $("#drop").style.display = "none";
   let timer = setTimeout(() => setStatus("err", "Database not reachable yet — showing bundled copy"), 10000);
+  db.collection("vehicles").onSnapshot((snap) => { VEH = snap.docs.map((d) => ({ ...d.data(), _id: d.id })); if (D) render(); }, () => {});
+  db.collection("maint").onSnapshot((snap) => { MAINT = snap.docs.map((d) => d.data()).filter((x) => x && x.id); if (D) render(); }, () => {});
   db.collection("actions").onSnapshot((snap) => { doneMap = {}; snap.docs.forEach((d) => { const v = d.data(); if (v && v.key) doneMap[v.key] = v; }); if (D) render(); }, () => {});
   db.doc("mentor/latest").get().then((d) => { if (d.exists && d.data().text) { $("#mentorOut").textContent = d.data().text; $("#mentorWhen").textContent = "Last coaching: " + new Date(d.data().at).toLocaleString() + (d.data().question ? ` — “${d.data().question}”` : ""); } }).catch(() => {});
   db.collection("settlements").onSnapshot((snap) => {
