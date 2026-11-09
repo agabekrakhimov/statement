@@ -820,8 +820,8 @@ var render = function () {
 
 // ---- static content: flags & recommendations (always about the full 2 weeks) ----
 const FLAGS = [
-  ["critical", "Registration charges: $6,910 billed, unit numbers don't match", "Two registrations were deducted as \"Safety\": $4,507.13 \"for 777 truck\" on truck 7777's statement and $2,403.19 \"for truck 77777\" (no such unit) on truck 777's. Only $2,643.04 came back as a reimbursement. Ask Wenze for both registration receipts and confirm which truck each is for — you may be paying one twice or paying for someone else's truck.", "$4,267 net"],
-  ["critical", "You are being charged travel for other drivers", "Air tickets for Donomy Jenkins ($363.48) and Moise Yankee ($226.20), Uber for Donomy Jenkins ($187.35) plus Ubers and a hotel from August–September — $917.72 total, labelled \"Safety\". These are recruiting/driver-onboarding costs from 1–2 months ago. Get the agreement on who pays driver travel in writing.", "$918"],
+  ["critical", "Registrations billed to the wrong trucks: $6,910", "$4,507.13 \"for 777 truck\" was deducted on truck 7777's statement, and $2,403.19 for truck 77777 (Donomy Jenkins's 2023 Cascadia …NZ3683, titled 8/18/2026) on truck 777's. Only $2,643.04 came back. Ask Wenze for both receipts, check nothing is charged twice, and have each charge moved to the right truck so per-truck profit is correct.", "$4,267 net"],
+  ["serious", "Driver travel for other trucks billed to 777 and 7777", "Air tickets and Uber for Donomy Jenkins (driver of truck 77777: $550.83), an air ticket for Moise Yankee ($226.20), and Ubers and a hotel from August–September: $917.72 total, labelled \"Safety\". Donomy's costs belong to truck 77777, not 777 or 7777. Ask who Moise Yankee is and which truck he was hired for.", "$918"],
   ["critical", "Open balance of −$6,019.89 on every statement", "The Balances box shows −$6,019.89 in open items on all four statements (plus fuel, toll and maintenance balances). That is money Wenze says you owe and will keep deducting. Request an itemised ledger of what makes up that figure.", "$6,020 owed"],
   ["serious", "Truck 777 is burning more fuel", "5.39 MPG over 2 weeks vs 6.06 for truck 7777 — about 12% worse, costing $1.10/mi in fuel vs $0.98. Both trucks fell to ~4.4 MPG in the week of Oct 19. Check idle time in the ELD, tyre pressure, and driver speed; at 6.5 MPG truck 777 would have used ~118 fewer gallons — about $680 less in these 2 weeks.", "~$680"],
   ["serious", "Truck 777 deadhead is 19.6% (fleet target ≤15%)", "734 empty miles out of 3,739. Load 80A9397 Byhalia MS → St. Louis was 54% deadhead (374 empty miles for 324 loaded). At the fleet's $2.56 CPM, the ~173 empty miles above the 15% line cost about $440.", "~$440"],
@@ -1341,7 +1341,7 @@ function schedule(t) {
         since = last.odometer && odo ? odo - last.odometer : milesAfter(t, last.date);
         left = iv - since;
         const wk = mpw > 0 ? left / mpw : null;
-        st = left < 0 ? "overdue" : left < Math.max(2000, iv * 0.1) ? "soon" : "ok";
+        st = left < 0 ? "overdue" : left < Math.max(3000, iv * 0.3) ? "soon" : "ok";
         next = left < 0 ? `${num(-left)} mi overdue` : `in ${num(left)} mi${wk != null && wk < 52 ? ` · about ${dlabel(new Date(Date.now() + wk * 7 * DAY).toISOString().slice(0, 10))}` : ""}`;
         if (last.odometer) next += ` · at ${num(+last.odometer + iv)} mi`;
       } else {
@@ -1366,11 +1366,11 @@ function renderTrucks() {
     return `<button class="tpick ${t === selTruck ? "on" : ""}" data-truck="${esc(t)}" aria-pressed="${t === selTruck}">
       <span class="tp-top"><span class="swatch" style="background:${TC[t] || "var(--text-muted)"}"></span><b>${t.startsWith("VIN") ? esc(t) : "Truck " + esc(t)}</b>${od ? chip("overdue") : so ? chip("soon") : ""}</span>
       <span class="tp-model">${esc([p.year, p.make, p.model].filter(Boolean).join(" ") || "Add truck details")}</span>
-      <span class="muted">${p.vin ? "VIN …" + esc(String(p.vin).slice(-6)) + " · " : ""}${odo ? "≈ " + num(odo) + " mi" : t.startsWith("VIN") ? "Not linked to a unit yet" : "Odometer not set"}${DRIVER[t] ? " · " + esc(DRIVER[t]) : ""}</span></button>`;
+      <span class="muted">${p.vin ? "VIN …" + esc(String(p.vin).slice(-6)) + " · " : ""}${odo ? "≈ " + num(odo) + " mi" : t.startsWith("VIN") ? "Not linked to a unit yet" : "Odometer not set"}${DRIVER[t] || p.driver ? " · " + esc(DRIVER[t] || String(p.driver).split(" ")[0]) : ""}</span></button>`;
   }).join("");
   const t = selTruck, p = prof(t);
   // profile
-  const F = [["unit", "Unit number"], ["vin", "VIN"], ["year", "Year"], ["make", "Make"], ["model", "Model"], ["plate", "Plate / state"], ["titleNo", "Title no."], ["owner", "Owner"],
+  const F = [["unit", "Unit number"], ["vin", "VIN"], ["driver", "Driver"], ["partner", "Owner / partner"], ["year", "Year"], ["make", "Make"], ["model", "Model"], ["engine", "Engine"], ["plate", "Plate / state"], ["titleNo", "Title no."], ["owner", "Owner"],
     ["purchaseDate", "Purchased", "date"], ["purchasePrice", "Purchase price", "number"], ["lienholder", "Lienholder"], ["lienDate", "Lien date", "date"], ["payment", "Monthly payment", "number"],
     ["odometer", "Odometer reading", "number"], ["odometerDate", "Odometer read on", "date"], ["oilInterval", "Oil change every (mi)", "number"], ["regExpiry", "Registration expires", "date"], ["notes", "Notes"]];
   const show = (k, typ) => { const v = p[k]; if (v == null || v === "") return `<span class="muted">—</span>`; return typ === "date" ? dlabel(v) : (k === "purchasePrice" || k === "payment") ? money(+v) : (k === "odometer" || k === "oilInterval") ? num(+v) : esc(v); };
