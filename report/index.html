@@ -3,218 +3,274 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fleet Report · Oct 12–25, 2026 · Trucks 777 & 7777</title>
+<title>Fleet Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
+/* Layout: one 1200px column; a quiet slate neutral, blue accent, truck colours only on data. */
 :root {
   color-scheme: light;
-  --bg: #f4f3f0; --surface-1: #fcfcfb; --surface-2: #f0efec; --border: #e2e0da;
-  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
-  --grid: #e8e6e1;
+  --bg: #f2f4f7; --surface-1: #ffffff; --surface-2: #f5f7fa; --border: #e3e7ed; --grid: #eaedf2;
+  --text-primary: #0f172a; --text-secondary: #46556b; --text-muted: #7b8798;
+  --accent: #1d5fd1; --accent-soft: #e7eefb; --on-accent: #ffffff;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
   --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  --good-text: #006300; --critical-text: #b02a2a;
-  --rest: #c9c7c0;
+  --good-text: #0a6b0a; --critical-text: #b02a2a; --rest: #cfd5dd;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .05);
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
-    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86; --grid: #2c2c29;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-    --good-text: #3fc63f; --critical-text: #f07a7a; --rest: #4a4a45;
+    --bg: #0e1217; --surface-1: #161b22; --surface-2: #1c232c; --border: #2a323d; --grid: #242c36;
+    --text-primary: #eef2f6; --text-secondary: #b3bdc8; --text-muted: #7f8b98;
+    --accent: #4d8ae8; --accent-soft: #1b2a44; --on-accent: #ffffff;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #2fa32f; --s7: #9085e9; --s8: #e66767;
+    --good-text: #4ad04a; --critical-text: #f07a7a; --rest: #3a434e;
+    --shadow: none;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111110; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
-  --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86; --grid: #2c2c29;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-  --good-text: #3fc63f; --critical-text: #f07a7a; --rest: #4a4a45;
+  --bg: #0e1217; --surface-1: #161b22; --surface-2: #1c232c; --border: #2a323d; --grid: #242c36;
+  --text-primary: #eef2f6; --text-secondary: #b3bdc8; --text-muted: #7f8b98;
+  --accent: #4d8ae8; --accent-soft: #1b2a44; --on-accent: #ffffff;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #2fa32f; --s7: #9085e9; --s8: #e66767;
+  --good-text: #4ad04a; --critical-text: #f07a7a; --rest: #3a434e;
+  --shadow: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text-primary);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
-header { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
-h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
-h2 { font-size: 16px; margin: 0 0 4px; }
-.sub { color: var(--text-secondary); margin: 2px 0 0; }
-.muted { color: var(--text-muted); font-size: 12px; }
-.controls { display: flex; gap: 8px; flex-wrap: wrap; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
-.seg button { border: 0; background: transparent; color: var(--text-secondary); padding: 7px 12px; font: inherit; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font: 14px/1.5 var(--font); font-feature-settings: "tnum"; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-block: 20px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+p { margin: 0 0 8px; }
+a { color: var(--accent); }
+.muted { color: var(--text-muted); font-size: 12.5px; }
+.hint { color: var(--text-secondary); font-size: 13px; margin: -4px 0 12px; }
+
+/* Header */
+.topbar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mark { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex: none; }
+.mark svg { width: 22px; height: 22px; display: block; }
+.sub { color: var(--text-secondary); font-size: 12.5px; margin: 2px 0 0; }
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.status { font-size: 12px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1); }
+.status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+.status.live .dot { background: var(--good); }
+.status.err .dot { background: var(--critical); }
+.seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+.seg button { border: 0; background: transparent; color: var(--text-secondary); padding: 5px 11px; border-radius: 7px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--text-primary); box-shadow: var(--shadow); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; margin: 0 0 16px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { padding: 10px 14px; color: var(--text-secondary); text-decoration: none; font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs a:hover { color: var(--text-primary); }
+.tabs a[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.filterbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.panel { display: none; } .panel.active { display: block; }
+
+/* Cards & grids */
 .grid { display: grid; gap: 14px; }
-.kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
-.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
-.kpi .label { color: var(--text-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.kpi .value { font-size: 26px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.kpi .note { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
-.two { grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); margin-bottom: 14px; }
+.two { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); margin-bottom: 14px; }
 .full { margin-bottom: 14px; }
-.flags { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
-.flag { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px; border-radius: 10px; background: var(--surface-2); }
-.flag .icon { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 14px; }
-.flag.critical .icon { background: var(--critical); }
-.flag.serious .icon { background: var(--serious); }
-.flag.warning .icon { background: var(--warning); color: #111; }
-.flag .sev { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
-.flag .title { font-weight: 600; }
-.flag .body { color: var(--text-secondary); margin-top: 2px; }
-.flag .amt { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
-th:first-child, td:first-child { text-align: left; }
-th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
-td.left, th.left { text-align: left; }
-.tablewrap { overflow-x: auto; }
-.win { color: var(--good-text); font-weight: 650; }
-.lose { color: var(--critical-text); font-weight: 650; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; min-width: 0; box-shadow: var(--shadow); }
+.row-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.row-head h2 { margin-bottom: 0; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); margin-bottom: 14px; }
+.kpi .delta { white-space: nowrap; }
+.kpi { padding: 14px 16px; }
+.kpi .label { color: var(--text-muted); font-size: 11.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+.kpi .value { font-size: 24px; font-weight: 600; margin-top: 4px; letter-spacing: -0.01em; }
+.kpi .note { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
+/* Controls */
+.btn { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); padding: 7px 13px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn:hover { border-color: var(--text-muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.danger { color: var(--critical-text); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn:focus-visible, .mtile:focus-visible, .stoggle:focus-visible, .tpick:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border); }
+.pill.bad { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical-text); border-color: transparent; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.critical { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical-text); }
+.chip.warning { background: color-mix(in srgb, var(--warning) 24%, transparent); color: var(--text-primary); }
+.chip.good { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good-text); }
+.chip.none { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.delta { font-size: 12px; font-weight: 600; }
+.delta.up { color: var(--good-text); } .delta.down { color: var(--critical-text); }
+.win { color: var(--good-text); font-weight: 600; }
+.lose { color: var(--critical-text); font-weight: 600; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 4px; color: var(--text-secondary); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; color: var(--text-secondary); font-size: 12px; }
+details summary { cursor: pointer; color: var(--text-secondary); font-weight: 500; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child, td.left, th.left { text-align: left; }
+th { color: var(--text-muted); font-weight: 500; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+tbody tr:hover td { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: 0; }
+td.wrap { white-space: normal; min-width: 160px; }
+#oneTime td:nth-child(4), #oneTime td:nth-child(3) { white-space: normal; }
+.tablewrap { overflow-x: auto; }
+
+/* Charts */
 svg { display: block; width: 100%; height: auto; overflow: visible; }
 svg text { fill: var(--text-secondary); font-size: 11px; font-family: inherit; }
 svg .val { fill: var(--text-primary); font-weight: 600; }
-svg .axis line, svg .gridline { stroke: var(--grid); }
+svg .gridline { stroke: var(--grid); }
 svg .ref { stroke: var(--critical); stroke-dasharray: 4 3; stroke-width: 1.5; }
 svg .bar { transition: opacity .12s; }
 svg .hit { fill: transparent; cursor: default; }
 svg g.mark:hover .bar { opacity: .8; }
-#tip { position: fixed; pointer-events: none; background: var(--text-primary); color: var(--surface-1); padding: 8px 10px; border-radius: 8px;
-  font-size: 12px; line-height: 1.4; max-width: 280px; opacity: 0; transition: opacity .08s; z-index: 10; }
-#tip b { font-weight: 650; }
-.recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 10px; }
-.rec { background: var(--surface-2); border-radius: 10px; padding: 12px; }
-.rec b { display: block; margin-bottom: 4px; }
-.rec p { margin: 0; color: var(--text-secondary); }
-.pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--surface-2); color: var(--text-secondary); margin-left: 6px; }
-.pill.bad { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-text); }
-details summary { cursor: pointer; color: var(--text-secondary); margin-top: 8px; }
-#oneTime td:nth-child(4), #oneTime td:nth-child(3) { white-space: normal; }
-.status { font-size: 12px; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
-.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
-.status.live .dot { background: var(--good); }
-.status.err .dot { background: var(--critical); }
-.btn { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
-.btn.primary { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
-.btn.danger { color: var(--critical-text); }
-.btn:disabled { opacity: .5; cursor: default; }
-.drop { border: 2px dashed var(--border); border-radius: 12px; padding: 18px; text-align: center; color: var(--text-secondary); margin-top: 10px; }
-.drop.over { border-color: var(--s1); }
-.preview { margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
+#tip { position: fixed; pointer-events: none; background: var(--text-primary); color: var(--bg); padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; max-width: 280px; opacity: 0; transition: opacity .08s; z-index: 10; }
+#tip b { font-weight: 600; }
+
+/* Red flags */
+.flags { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.flag { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 11px 14px; border-radius: 10px; background: var(--surface-2); border-left: 3px solid var(--text-muted); }
+.flag > div:not(.icon):not(.amt) { min-width: 0; }
+.flag.critical { border-left-color: var(--critical); } .flag.serious { border-left-color: var(--serious); } .flag.warning { border-left-color: var(--warning); }
+.flag .icon { display: none; }
+.flag .sev { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.flag.critical .sev { color: var(--critical-text); }
+.flag .title { font-weight: 600; }
+.flag .body { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+.flag .amt { font-weight: 600; white-space: nowrap; }
+
+/* Upload & forms */
+.drop { border: 1.5px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; color: var(--text-secondary); background: var(--surface-2); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.preview { margin-top: 12px; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; font-size: 13px; }
+.preview ul { padding-left: 18px; }
 .preview .ok { color: var(--good-text); font-weight: 600; }
 .preview .bad { color: var(--critical-text); font-weight: 600; }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 4px 0 14px; overflow-x: auto; }
-.tabs a { padding: 10px 14px; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 500; }
-.tabs a[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--text-primary); }
-.filterbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.panel { display: none; } .panel.active { display: block; }
-.weekhead { display: flex; align-items: center; justify-content: space-between; text-align: center; }
-.checklist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.pform { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
+.pform label { display: grid; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+.pform input, .pform select, .field { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; min-width: 0; }
+.pform .wide, .pform-actions { grid-column: 1 / -1; }
+.prof-note { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; color: var(--text-secondary); font-size: 13px; }
+
+/* This week */
+.weekhead { display: flex; align-items: center; justify-content: space-between; text-align: center; padding: 12px 16px; }
+.weekhead h2 { font-size: 18px; margin: 0; }
+.checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .checklist li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; align-items: center; }
-.checklist .st { font-weight: 650; }
-.delta { font-size: 12px; font-weight: 600; }
-.delta.up { color: var(--good-text); } .delta.down { color: var(--critical-text); }
-a { color: var(--s1); }
-.actions { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
-.action { display: flex; justify-content: space-between; gap: 12px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
+.checklist .st { font-weight: 600; }
+.actions { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+@media (max-width: 560px) { .actions { grid-template-columns: 1fr; } }
+.action { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; }
 .action label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
-.action input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--good); }
-.action.done { opacity: .55; } .action.done b { text-decoration: line-through; }
+.action input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
+.action .muted { font-size: 12.5px; }
+.action.done { opacity: .5; } .action.done b { text-decoration: line-through; }
 .action .pill { margin: 0 6px 0 0; }
-.mentor-out { white-space: pre-wrap; margin-top: 12px; padding: 14px; background: var(--surface-2); border-radius: 10px; line-height: 1.55; min-height: 60px; }
-.routine li { margin-bottom: 6px; color: var(--text-secondary); } .routine b { color: var(--text-primary); }
-.ov-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.mtile { display: grid; gap: 2px; text-align: left; padding: 12px 12px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; transition: border-color .15s; min-width: 0; }
+.ask { display: flex; gap: 8px; flex-wrap: wrap; }
+.ask .field { flex: 1; min-width: 200px; }
+.mentor-out { white-space: pre-wrap; margin-top: 12px; padding: 14px; background: var(--surface-2); border-radius: 10px; line-height: 1.55; min-height: 60px; font-size: 13.5px; }
+.routine { margin: 8px 0 0; padding-left: 20px; color: var(--text-secondary); font-size: 13px; }
+.routine li { margin-bottom: 5px; } .routine b { color: var(--text-primary); font-weight: 600; }
+
+/* Overview */
+.ov-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mtile { display: grid; gap: 2px; text-align: left; padding: 12px 12px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; transition: border-color .15s; min-width: 0; box-shadow: var(--shadow); }
 .mtile:hover { border-color: var(--text-muted); }
-.mtile:focus-visible, .stoggle:focus-visible, .btn:focus-visible, .wi input:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
-.mtile.on { border-color: var(--s1); box-shadow: 0 0 0 1px var(--s1) inset; }
-.mlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); }
-.mval { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.mdelta { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.mtile.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.mlabel { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.mval { font-size: 20px; font-weight: 600; }
+.mdelta { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
 .mdelta.up { color: var(--good-text); } .mdelta.down { color: var(--critical-text); }
 .spark { width: 100%; height: 30px; margin-top: 2px; }
 .ov-head { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
 .ov-num { min-width: 0; }
-.eyebrow { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .05em; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-.ov-hero h2 { font-size: 15px; color: var(--text-secondary); font-weight: 600; margin-top: 6px; }
+.eyebrow { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; display: flex; align-items: center; gap: 6px; }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--good); animation: pulse 2.4s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 50%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.ov-hero h2 { font-size: 14px; color: var(--text-secondary); font-weight: 500; margin: 6px 0 0; }
 .ov-value { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.ov-value #ovValue { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.ov-value .delta { font-size: 14px; }
-.ov-hint { margin: 6px 0 0; }
+.ov-value #ovValue { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.ov-value .delta { font-size: 13px; }
 .ov-series { display: flex; flex-wrap: wrap; gap: 6px; }
-.stoggle { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-muted); border-radius: 99px; padding: 5px 11px; font: inherit; font-size: 12px; cursor: pointer; }
+.stoggle { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-muted); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
 .stoggle.on { color: var(--text-primary); background: var(--surface-2); border-color: var(--text-muted); }
 .stoggle:not(.on) .swatch { opacity: .35; }
+.ov-chart { margin-top: 6px; }
 .ov-chart svg path.draw { stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: draw 1.1s ease-out forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } .ov-chart svg path.draw { animation: none; stroke-dashoffset: 0; } }
-.rank { margin: 8px 0 4px; color: var(--text-secondary); }
-.levers { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 10px; }
-.levers li b { display: block; }
-.levers li span { color: var(--text-secondary); }
-.wi-head { display: flex; justify-content: space-between; align-items: center; }
-.wi-controls { display: grid; gap: 10px; margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } .ov-chart svg path.draw { animation: none; stroke-dashoffset: 0; } .wi-bar { transition: none; } }
+.rank { margin: 0 0 6px; color: var(--text-secondary); font-size: 13px; }
+.levers { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 10px; }
+.levers li b { display: block; font-weight: 600; }
+.levers li span { color: var(--text-secondary); font-size: 13px; }
+.wi-controls { display: grid; gap: 10px; }
 .wi { display: grid; grid-template-columns: 160px 1fr 72px; gap: 10px; align-items: center; }
 .wi-l { color: var(--text-secondary); font-size: 13px; }
-.wi-v { text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
-.wi input[type=range] { width: 100%; accent-color: var(--s1); }
-.wi-result { margin-top: 14px; padding: 12px; background: var(--surface-2); border-radius: 10px; display: grid; gap: 8px; }
+.wi-v { text-align: right; font-weight: 600; }
+.wi input[type=range] { width: 100%; accent-color: var(--accent); }
+.wi-result { margin-top: 14px; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; display: grid; gap: 8px; }
 .wi-row { display: grid; grid-template-columns: 110px 1fr 90px; gap: 10px; align-items: center; font-size: 13px; }
-.wi-row b { text-align: right; font-variant-numeric: tabular-nums; }
-.wi-track { height: 12px; background: var(--surface-1); border-radius: 6px; overflow: hidden; }
+.wi-row b { text-align: right; }
+.wi-track { height: 10px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .wi-bar { height: 100%; border-radius: 6px; transition: width .25s; }
 .wi-bar.now { background: var(--text-muted); } .wi-bar.proj { background: var(--good); }
 .wi-gains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-.wi-gains b { display: block; font-size: 20px; color: var(--good-text); font-variant-numeric: tabular-nums; }
+.wi-gains b { display: block; font-size: 20px; color: var(--good-text); }
 .wi-parts { display: flex; flex-wrap: wrap; gap: 6px; }
-.wi-parts .pill { margin: 0; }
-@media (max-width: 560px) { .wi { grid-template-columns: 1fr 64px; } .wi-l { grid-column: 1 / -1; } .wi-row { grid-template-columns: 90px 1fr 80px; } .ov-value #ovValue { font-size: 32px; } .two { grid-template-columns: 1fr; } .wi-gains b { font-size: 16px; } }
+
+/* Trucks */
 .truck-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.tpick { display: grid; gap: 3px; text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; min-width: 0; }
-.tpick.on { border-color: var(--s1); box-shadow: 0 0 0 1px var(--s1) inset; }
-.tpick:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+.tpick { display: grid; gap: 3px; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); color: var(--text-primary); font: inherit; cursor: pointer; min-width: 0; box-shadow: var(--shadow); }
+.tpick.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .tp-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.tp-model { color: var(--text-secondary); }
-.row-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-.prof { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; margin: 12px 0; }
-.prof dt { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
-.prof dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.note { background: var(--surface-2); padding: 10px; border-radius: 8px; color: var(--text-secondary); }
-.pform { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
-.pform label { display: grid; gap: 4px; font-size: 12px; color: var(--text-secondary); }
-.pform input, .pform select { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; min-width: 0; }
-.pform .wide, .pform-actions { grid-column: 1 / -1; }
-.svc { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
-.svc li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border-left: 3px solid transparent; flex-wrap: wrap; }
+.tp-model { color: var(--text-secondary); font-size: 13px; }
+.prof { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 16px; margin: 4px 0 12px; }
+.prof dt { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.prof dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.svc { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.svc li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; border-left: 3px solid var(--border); flex-wrap: wrap; }
 .svc li > div { display: grid; gap: 2px; min-width: 0; }
 .svc .svc-r { text-align: right; justify-items: end; }
 .svc-overdue { border-left-color: var(--critical) !important; } .svc-soon { border-left-color: var(--warning) !important; } .svc-ok { border-left-color: var(--good) !important; }
-.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
-.chip.critical { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical-text); }
-.chip.warning { background: color-mix(in srgb, var(--warning) 25%, transparent); color: var(--text-primary); }
-.chip.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good-text); }
-.chip.none { background: var(--surface-1); color: var(--text-muted); border: 1px solid var(--border); }
-td.wrap { white-space: normal; min-width: 160px; }
-.mks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
-.mk, .fund > div { display: grid; gap: 2px; background: var(--surface-2); padding: 10px; border-radius: 8px; }
-.mk b, .fund b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.mks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 12px; }
+.mk, .fund > div { display: grid; gap: 2px; background: var(--surface-2); padding: 10px 12px; border-radius: 8px; }
+.mk b, .fund b { font-size: 18px; font-weight: 600; }
 .fund { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
-footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+
+@media (max-width: 560px) {
+  .two { grid-template-columns: 1fr; }
+  .card { padding: 16px; }
+  .wi { grid-template-columns: 1fr 64px; } .wi-l { grid-column: 1 / -1; }
+  .wi-row { grid-template-columns: 90px 1fr 80px; }
+  .ov-value #ovValue { font-size: 32px; }
+  .wi-gains b { font-size: 16px; }
+  .mks { grid-template-columns: 1fr 1fr; }
+  .flag { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
 <div id="tip" role="tooltip"></div>
 <div class="wrap">
-  <header>
-    <div>
-      <h1>Fleet Dashboard</h1>
-      <p class="sub" id="subtitle">Loading…</p>
-      <p class="status" id="dbStatus"><span class="dot"></span><span>Connecting to database…</span></p>
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h10v9H3z"/><path d="M13 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8" fill="currentColor" stroke="none"/><circle cx="17" cy="17.5" r="1.8" fill="currentColor" stroke="none"/></svg></div>
+      <div>
+        <h1>Fleet Dashboard</h1>
+        <p class="sub" id="subtitle">Loading…</p>
+      </div>
     </div>
     <div class="controls">
+      <span class="status" id="dbStatus"><span class="dot"></span><span>Connecting…</span></span>
       <div class="seg" role="group" aria-label="Theme" id="themeSeg">
         <button data-theme="auto" aria-pressed="true">Auto</button>
         <button data-theme="light" aria-pressed="false">Light</button>
@@ -226,10 +282,8 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
   <nav class="tabs" id="tabs" role="tablist">
     <a href="#overview" data-tab="overview">Overview</a>
     <a href="#this-week" data-tab="this-week">This week</a>
-    <a href="#mentor" data-tab="mentor">Mentor</a>
-    <a href="#trucks" data-tab="trucks">Trucks &amp; maintenance</a>
-    <a href="#dashboard" data-tab="dashboard">Dashboard</a>
-    <a href="#trends" data-tab="trends">Week by week</a>
+    <a href="#trucks" data-tab="trucks">Trucks</a>
+    <a href="#compare" data-tab="compare">Compare</a>
     <a href="#loads" data-tab="loads">Loads &amp; fuel</a>
     <a href="#statements" data-tab="statements">Statements</a>
   </nav>
@@ -239,14 +293,13 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     <div class="seg" role="group" aria-label="Carrier filter" id="carrierSeg"></div>
   </div>
 
-  <!-- ===================== OVERVIEW ===================== -->
+  <!-- Overview -->
   <div class="panel" data-panel="overview">
     <section class="ov-tiles" id="ovTiles" aria-label="Pick a number to chart"></section>
-
     <section class="card full ov-hero">
       <div class="ov-head">
         <div class="ov-num">
-          <div class="eyebrow"><span class="pulse" aria-hidden="true"></span>Live · redraws when a statement is saved · <span id="ovUpdated">just now</span></div>
+          <div class="eyebrow"><span class="pulse" aria-hidden="true"></span>Live · <span id="ovUpdated">just now</span></div>
           <h2 id="ovTitle">Operating profit</h2>
           <div class="ov-value"><span id="ovValue">—</span><span id="ovDelta" class="delta"></span></div>
           <div class="muted" id="ovSub"></div>
@@ -254,17 +307,15 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
         <div class="ov-series" id="ovSeries" aria-label="Lines to show"></div>
       </div>
       <div id="ovChart" class="ov-chart"></div>
-      <p class="muted ov-hint">Tap a number above to chart it. Tap a truck to hide or show its line. Hover the chart for exact values.</p>
     </section>
-
     <section class="grid two">
       <div class="card">
         <h2>How to improve <span id="ovImpName">this number</span></h2>
         <div id="ovImprove"></div>
       </div>
       <div class="card">
-        <div class="wi-head"><h2>What if…</h2><button class="btn" id="wiReset">Reset</button></div>
-        <p class="muted">Move the sliders to see what each improvement is worth to you.</p>
+        <div class="row-head"><h2>What if</h2><button class="btn" id="wiReset">Reset</button></div>
+        <p class="hint">Move a slider to see what each improvement is worth.</p>
         <div id="wiControls" class="wi-controls"></div>
         <div class="wi-result">
           <div class="wi-row"><span>Now, per week</span><div class="wi-track"><div class="wi-bar now" id="wiBarNow"></div></div><b id="wiNow">—</b></div>
@@ -281,20 +332,77 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     </section>
   </div>
 
-  <!-- ===================== TRUCKS ===================== -->
+  <!-- This week -->
+  <div class="panel" data-panel="this-week">
+    <section class="card full weekhead">
+      <button class="btn" id="prevWeek" aria-label="Previous week">‹</button>
+      <div><div class="muted" id="weekCaption">Week</div><h2 id="weekTitle">—</h2></div>
+      <button class="btn" id="nextWeek" aria-label="Next week">›</button>
+    </section>
+    <section class="grid two">
+      <div class="card">
+        <h2>Statements this week</h2>
+        <ul class="checklist" id="checklist"></ul>
+      </div>
+      <div class="card">
+        <h2>Add statements</h2>
+        <div class="drop" id="drop">
+          <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+          <button class="btn primary" id="pickBtn">Upload settlement PDFs</button>
+          <div class="muted" style="margin-top:8px">or drop them here. Each is read, checked, then saved when you confirm.</div>
+        </div>
+        <div id="saveAllBar" style="display:none;margin-top:10px"><button class="btn primary" id="saveAll">Save all that passed checks</button></div>
+        <div id="uploadArea"></div>
+      </div>
+    </section>
+    <section class="grid kpis" id="weekKpis"></section>
+    <section class="card full">
+      <div class="row-head"><h2>Red flags</h2>
+        <div class="seg" role="group" aria-label="Which weeks" id="flagScope"><button data-scope="week" aria-pressed="true">This week</button><button data-scope="all" aria-pressed="false">All weeks</button></div>
+      </div>
+      <ul class="flags" id="weekFlags"></ul>
+    </section>
+    <section class="card full">
+      <h2>Ask your mentor</h2>
+      <p class="hint">Claude reads your numbers and red flags and tells you what to do this week.</p>
+      <div class="ask">
+        <input id="mentorQ" class="field" placeholder="Optional question, e.g. should I keep truck 777 with Wenze?">
+        <button class="btn primary" id="askMentor">Get coaching</button>
+      </div>
+      <div class="mentor-out" id="mentorOut"><p class="muted">Press “Get coaching” for this week's review.</p></div>
+      <div class="muted" id="mentorWhen"></div>
+      <details style="margin-top:14px"><summary>Weekly routine (20 minutes)</summary>
+        <ol class="routine">
+          <li><b>Statement day:</b> upload every truck's PDF above. No truck should show “Missing”.</li>
+          <li><b>Red flags:</b> anything critical, call or email the carrier the same day and ask for the correction in writing.</li>
+          <li><b>Rate vs cost:</b> a truck below its cost per mile means a talk with dispatch about the loads they booked.</li>
+          <li><b>Fuel:</b> low MPG means a talk with the driver about idling, speed and tires.</li>
+          <li><b>One-time charges:</b> every one needs a receipt that matches your truck number.</li>
+          <li><b>Tick off</b> finished actions and press “Get coaching”.</li>
+          <li><b>Monthly:</b> compare carriers on the Compare tab and top up the repair fund on the Trucks tab.</li>
+        </ol>
+      </details>
+    </section>
+    <section class="card full">
+      <div class="row-head"><h2>Action plan</h2><span class="muted" id="mentorSummary"></span></div>
+      <ul class="actions" id="actions"></ul>
+    </section>
+  </div>
+
+  <!-- Trucks -->
   <div class="panel" data-panel="trucks">
     <section class="truck-pick" id="truckPick" aria-label="Pick a truck"></section>
     <section class="grid two">
       <div class="card" id="truckProfile"></div>
       <div class="card">
         <h2>Service schedule</h2>
-        <p class="muted">Next due is counted from the last service by odometer, or by statement miles when no odometer was written down.</p>
+        <p class="hint">Next due counts from the last service by odometer, or by statement miles if no odometer was recorded.</p>
         <div id="svcSched"></div>
       </div>
     </section>
     <section class="card full">
-      <div class="row-head"><h2>Maintenance history</h2><button class="btn primary" id="addMaintBtn">+ Add service or repair</button></div>
-      <p class="muted">Repairs and oil changes billed on your statements appear here automatically. Add the ones you paid yourself, with the odometer reading.</p>
+      <div class="row-head"><h2>Maintenance history</h2><button class="btn primary" id="addMaintBtn">Add service or repair</button></div>
+      <p class="hint">Work billed on your statements appears automatically. Add what you paid yourself, with the odometer reading.</p>
       <div id="maintForm" hidden></div>
       <div class="tablewrap"><table id="maintTable"></table></div>
     </section>
@@ -304,220 +412,76 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
     </section>
   </div>
 
-  <!-- ===================== THIS WEEK ===================== -->
-  <div class="panel" data-panel="this-week">
-    <section class="card full weekhead">
-      <button class="btn" id="prevWeek" aria-label="Previous week">‹</button>
-      <div><div class="muted" id="weekCaption">Week</div><h2 id="weekTitle" style="font-size:20px;margin:0">—</h2></div>
-      <button class="btn" id="nextWeek" aria-label="Next week">›</button>
-    </section>
-
-    <section class="grid two">
-      <div class="card">
-        <h2>Statements for this week</h2>
-        <p class="muted">Every truck that ran recently should have one. Missing ones are listed so nothing slips.</p>
-        <ul class="checklist" id="checklist"></ul>
-      </div>
-      <div class="card">
-        <h2>Add this week's statements</h2>
-        <p class="muted">Drop all of this week's settlement PDFs at once. Each is read, checked, and waits for you to save.</p>
-        <div class="drop" id="drop">
-          <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
-          <button class="btn primary" id="pickBtn">Upload settlement PDFs</button>
-          <div class="muted" style="margin-top:6px">or drop PDFs here · datatruck.io "Truck Owner Settlement" (Wenze, VKL, …)</div>
-        </div>
-        <div id="saveAllBar" style="display:none;margin-top:10px"><button class="btn primary" id="saveAll">Save all that passed checks</button></div>
-        <div id="uploadArea"></div>
-      </div>
-    </section>
-
-    <section class="card full">
-      <h2>🧭 Your mentor says: do these next</h2>
-      <ul class="actions" id="topActions"></ul>
-      <p style="margin:10px 0 0"><a href="#mentor">See the full action plan →</a></p>
-    </section>
-
-    <section class="grid kpis" id="weekKpis"></section>
-
-    <section class="card full">
-      <h2>Gross, operating profit &amp; net pay by week</h2>
-      <p class="muted">Whole fleet. Hover a week for the numbers.</p>
-      <div class="legend" id="lnProfitLegend"></div>
-      <div id="lnProfit"></div>
-    </section>
-
-    <section class="card full">
-      <h2>🚩 This week's red flags</h2>
-      <ul class="flags" id="weekFlags"></ul>
-    </section>
-  </div>
-
-  <!-- ===================== MENTOR ===================== -->
-  <div class="panel" data-panel="mentor">
-    <section class="card full">
-      <h2>🧭 Ask your mentor</h2>
-      <p class="muted">Claude reads all your numbers and red flags and coaches you on what to do this week. Ask anything, e.g. "Should I keep truck 777 with Wenze?" or "What rate should I ask for?".</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <input id="mentorQ" placeholder="Optional question…" style="flex:1;min-width:220px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);font:inherit">
-        <button class="btn primary" id="askMentor">Get coaching</button>
-      </div>
-      <div class="mentor-out" id="mentorOut"><p class="muted">Press “Get coaching” for this week's review.</p></div>
-      <div class="muted" id="mentorWhen"></div>
-    </section>
-
-    <section class="card full">
-      <h2>Action plan</h2>
-      <p class="muted" id="mentorSummary"></p>
-      <p class="muted">Built automatically from your statements. Tick items off as you do them; ticks are saved. New items appear when new statements reveal something.</p>
-      <ul class="actions" id="actions"></ul>
-    </section>
-
-    <section class="card full">
-      <h2>Your weekly routine (20 minutes)</h2>
-      <ol class="routine">
-        <li><b>Day statements arrive:</b> upload every truck's PDF on the <a href="#this-week">This week</a> tab. Make sure no truck shows “Missing”.</li>
-        <li><b>Read the red flags.</b> Anything “critical” = call or email the carrier the same day. Ask for corrections in writing.</li>
-        <li><b>Check each truck's RPM vs CPM.</b> Below cost = talk to dispatch about the loads they booked.</li>
-        <li><b>Check MPG and fuel $/gal.</b> Low MPG = talk to the driver (idling, speed, tires).</li>
-        <li><b>Look at one-time charges.</b> Every one needs a receipt that matches your truck number.</li>
-        <li><b>Tick off finished actions</b> here and press “Get coaching” for next week's priorities.</li>
-        <li><b>Monthly:</b> compare carriers on the Dashboard (fee %, weekly fees, fuel discount) and set aside money for maintenance, plates and IFTA.</li>
-      </ol>
-    </section>
-  </div>
-
-  <!-- ===================== DASHBOARD ===================== -->
-  <div class="panel" data-panel="dashboard">
-    <section class="grid kpis" id="kpis"></section>
-
-    <section class="card full">
-      <h2>🚩 Red flags</h2>
-      <p class="muted">Checked automatically on every statement: totals that don't add up, driver pay that doesn't match the loads, one-time and unexplained charges, losing weeks, MPG under 6.5, deadhead over 15%, loads below cost per mile, maintenance over $0.10/mi, missing statements.</p>
-      <ul class="flags" id="autoFlags"></ul>
-    </section>
-
+  <!-- Compare -->
+  <div class="panel" data-panel="compare">
     <section class="card full">
       <h2>Truck vs truck</h2>
-      <p class="muted"><span class="win">Green</span> = best truck on that line, <span class="lose">red</span> = worst. Operating = excludes one-time charges and reimbursements.</p>
+      <p class="hint"><span class="win">Green</span> is the best truck on that line, <span class="lose">red</span> the worst. Operating figures exclude one-time charges and reimbursements.</p>
       <div class="tablewrap"><table id="scorecard"></table></div>
     </section>
-
     <section class="grid two">
       <div class="card">
         <h2>Where each $1 of gross goes</h2>
-        <p class="muted">Operating costs as % of gross revenue. Whatever is left is operating profit.</p>
         <div class="legend" id="pctLegend"></div>
         <div id="pctChart"></div>
       </div>
       <div class="card">
-        <h2>Fuel economy (MPG)</h2>
-        <p class="muted">Diesel only. Red line = 6.5 MPG target. Single weeks swing with fill-up timing — trust the total.</p>
-        <div class="legend" id="mpgLegend"></div>
-        <div id="mpgChart"></div>
-      </div>
-    </section>
-
-    <section class="grid two">
-      <div class="card">
-        <h2>Maintenance, tolls &amp; fuel per mile</h2>
-        <p class="muted">Normalised by miles so a truck that ran more isn't penalised.</p>
+        <h2>Maintenance, tolls and fuel per mile</h2>
         <div class="legend" id="mtLegend"></div>
         <div id="mtChart"></div>
       </div>
-      <div class="card">
-        <h2>Carrier vs carrier</h2>
-        <p class="muted">What each carrier charges you and what you keep. Fixed fees = insurance, trailer, ELD, IFTA, admin, plates per truck-week.</p>
-        <div class="tablewrap"><table id="carrierTable"></table></div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ===================== TRENDS ===================== -->
-  <div class="panel" data-panel="trends">
-    <section class="grid two">
-      <div class="card">
-        <h2>Revenue vs cost per mile — trend</h2>
-        <p class="muted">The gap between the lines is your profit per mile.</p>
-        <div class="legend" id="lnRpmLegend"></div>
-        <div id="lnRpm"></div>
-      </div>
-      <div class="card">
-        <h2>Gross by truck — trend</h2>
-        <div class="legend" id="lnGrossLegend"></div>
-        <div id="lnGross"></div>
-      </div>
-    </section>
-    <section class="grid two">
-      <div class="card">
-        <h2>MPG by truck — trend</h2>
-        <p class="muted">Red line = 6.5 MPG target. One bad week can be fill-up timing; two in a row is a problem.</p>
-        <div class="legend" id="lnMpgLegend"></div>
-        <div id="lnMpg"></div>
-      </div>
-      <div class="card">
-        <h2>Operating profit by truck — trend</h2>
-        <p class="muted">Below $0 = the truck lost money that week.</p>
-        <div class="legend" id="lnTruckProfitLegend"></div>
-        <div id="lnTruckProfit"></div>
-      </div>
     </section>
     <section class="card full">
-      <h2>Week by week</h2>
-      <p class="muted">One row per week. Arrows compare with the week before.</p>
-      <div class="tablewrap"><table id="trendTable"></table></div>
+      <h2>Carrier vs carrier</h2>
+      <p class="hint">What each carrier charges and what you keep. Fixed fees are insurance, trailer, ELD, IFTA, admin and plates per truck-week.</p>
+      <div class="tablewrap"><table id="carrierTable"></table></div>
     </section>
   </div>
 
-  <!-- ===================== LOADS ===================== -->
+  <!-- Loads & fuel -->
   <div class="panel" data-panel="loads">
     <section class="grid two">
       <div class="card">
-        <h2>Deadhead % by load</h2>
-        <p class="muted">Empty ÷ total miles. Red line = 15%.</p>
+        <h2>Deadhead by load</h2>
+        <p class="hint">Empty miles as a share of total. Red line is the 15% limit.</p>
         <div class="legend" id="dhLegend"></div>
         <div id="dhChart"></div>
       </div>
       <div class="card">
         <h2>Rate per mile by load</h2>
-        <p class="muted">Gross ÷ total miles. Red line = operating cost per mile — loads below it lose money.</p>
+        <p class="hint">Gross ÷ all miles. Loads left of the red line paid less than your cost per mile.</p>
         <div class="legend" id="lrLegend"></div>
         <div id="lrChart"></div>
       </div>
     </section>
     <section class="card full">
-      <h2>Every load</h2>
+      <h2>Loads</h2>
       <div class="tablewrap"><table id="loadsTable"></table></div>
     </section>
     <section class="card full">
       <h2>Fuel stops</h2>
-      <p class="muted">Card discount = retail − charged. Some carriers only print retail; then discount shows $0.</p>
+      <p class="hint">Discount is retail minus what you were charged. Carriers that only print retail show $0.</p>
       <div class="tablewrap"><table id="fuelTable"></table></div>
     </section>
   </div>
 
-  <!-- ===================== STATEMENTS ===================== -->
+  <!-- Statements -->
   <div class="panel" data-panel="statements">
-    <section class="card full" id="manage">
-      <h2>Statements in the database</h2>
-      <p class="muted">To add new ones, use the <a href="#this-week">This week</a> tab.</p>
+    <section class="card full">
+      <h2>Week by week</h2>
+      <p class="hint">Arrows compare each week with the one before.</p>
+      <div class="tablewrap"><table id="trendTable"></table></div>
+    </section>
+    <section class="card full">
+      <h2>Statements</h2>
       <div class="tablewrap"><table id="stmtTable"></table></div>
     </section>
     <section class="card full">
-      <h2>One-time &amp; unexplained items</h2>
-      <p class="muted">Charges and credits that aren't normal running costs — registrations, driver travel, salary adjustments, advances, reimbursements.</p>
+      <h2>One-time and unexplained items</h2>
+      <p class="hint">Charges and credits that aren't normal running costs: registrations, driver travel, salary adjustments, advances, reimbursements.</p>
       <div class="tablewrap"><table id="oneTime"></table></div>
     </section>
-    <section class="card full">
-      <h2>My review of the Oct 12–25 Wenze statements</h2>
-      <details><summary>Show notes</summary><ul class="flags" id="flags"></ul></details>
-    </section>
-    <section class="card full">
-      <h2>What to track and why</h2>
-      <div class="recs" id="recs"></div>
-    </section>
   </div>
-
-  <footer>Data model + Power BI/Fabric files are in <code>powerbi/</code> of the repository.</footer>
 </div>
 
 <script src="data.js"></script>
@@ -525,7 +489,7 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 <script>
 (() => {
 let D = null, TRUCKS = [], TC = {}, DRIVER = {}, RATE = {}, WEEKS = [], WLABEL = {};
-let week = "all", carrier = "all", curWeek = null, CARRIERS = [];
+let week = "all", carrier = "all", curWeek = null, CARRIERS = [], flagScope = "week";
 const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s7)", "var(--s5)", "var(--s4)", "var(--s6)", "var(--s8)"];
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function weekLabel(ws) {
@@ -553,7 +517,7 @@ function setData(d) {
   $("#weekSeg").innerHTML = [["all", `All ${WEEKS.length} weeks`], ...WEEKS.slice(-8).map((w) => [w, WLABEL[w]])]
     .map(([k, l]) => `<button data-week="${k}" aria-pressed="${k === week}">${l}</button>`).join("");
   const ids2 = d.settlements.map((s) => s.SettlementID).sort();
-  $("#subtitle").textContent = WEEKS.length ? `${TRUCKS.length} truck${TRUCKS.length > 1 ? "s" : ""} (${TRUCKS.join(", ")}) · ${CARRIERS.length} carrier${CARRIERS.length > 1 ? "s" : ""} · ${d.settlements.length} statements · ${WLABEL[WEEKS[0]]} → ${WLABEL[WEEKS[WEEKS.length - 1]]}, ${WEEKS[WEEKS.length - 1].slice(0, 4)}` : "No statements yet — add one on the This week tab.";
+  $("#subtitle").textContent = WEEKS.length ? `${TRUCKS.length} truck${TRUCKS.length > 1 ? "s" : ""} (${TRUCKS.join(", ")}) · ${CARRIERS.length} carrier${CARRIERS.length > 1 ? "s" : ""} · ${d.settlements.length} statements · ${WLABEL[WEEKS[0]]} → ${WLABEL[WEEKS[WEEKS.length - 1]]}, ${WEEKS[WEEKS.length - 1].slice(0, 4)}` : "No statements yet. Add one on the This week tab.";
 }
 
 const $ = (s) => document.querySelector(s);
@@ -692,20 +656,6 @@ var render = function () {
   if (!D || !D.settlements.length) return;
   const label = week === "all" ? `${WEEKS.length} week${WEEKS.length > 1 ? "s" : ""}` : WLABEL[week];
 
-  // KPIs
-  const k = [
-    ["Gross revenue", money(fleet.gross), `${fleet.L.length} loads · ${label}`],
-    ["Total miles", num(fleet.miles), `${num(fleet.loaded)} loaded · ${num(fleet.empty)} empty`],
-    ["RPM", pm(fleet.rpm), `Loaded RPM ${pm(fleet.lrpm)}`],
-    ["CPM (operating)", pm(fleet.cpm), "= breakeven rate per mile"],
-    ["Operating profit", money(fleet.profit), `${pct(fleet.margin)} margin · ${pm(fleet.profit / fleet.miles)}/mi`],
-    ["Net pay deposited", money(fleet.net, 2), `after ${money(fleet.oneTime)} one-time charges, +${money(fleet.reimb)} reimb.`],
-    ["Deadhead", pct(fleet.dh), `${num(fleet.empty)} empty miles`],
-    ["MPG", fleet.mpg.toFixed(2), `${num(fleet.dGal, 0)} gal diesel · ${pm(fleet.dCost / fleet.dGal)}/gal`],
-    ["Fuel per mile", pm(fleet.fpm), `${pct((fleet.dCost + fleet.defCost) / fleet.gross)} of gross`],
-  ];
-  $("#kpis").innerHTML = k.map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
-
   // Scorecard: [label, fn, fmt, higherIsBetter]
   const rows = [
     ["Driver", (x, t) => `${DRIVER[t]} (${RATE[t] ? "$" + RATE[t].toFixed(2) + "/mi" : "—"})`, null],
@@ -746,29 +696,6 @@ var render = function () {
   $("#scorecard").innerHTML = h + "</tbody>";
 
   pctChart(TRUCKS.map((t) => [`Truck ${t}`, byT[t]]).concat([["Fleet", fleet]]));
-
-  // RPM vs CPM per truck-week
-  const tw = (t, w) => { const save = week; week = w; const r = m(t); week = save; return r; };
-  const saveW = week, showWeeks = week === "all" ? WEEKS.slice(-8) : [week];
-  legend("#rpmLegend", [["var(--s3)", "RPM (revenue/mile)"], ["var(--s8)", "CPM (cost/mile)"]]);
-  vbars("#rpmChart", showWeeks.map((w) => { week = w; const x = m(); week = saveW; return { label: WLABEL[w], bars: [
-    { value: x.rpm, color: "var(--s3)", tip: `<b>${WLABEL[w]}</b><br>RPM ${pm(x.rpm)} · CPM ${pm(x.cpm)}<br>Profit/mi ${pm(x.rpm - x.cpm)} → ${money(x.profit)}` },
-    { value: x.cpm, color: "var(--s8)", tip: `<b>${WLABEL[w]}</b><br>CPM ${pm(x.cpm)}: driver ${pm(x.dpay / x.miles)}, fuel ${pm((x.cat.Fuel || 0) / x.miles)}, other ${pm((x.op - x.dpay - (x.cat.Fuel || 0)) / x.miles)}` },
-  ] }; }), { fmt: (v) => "$" + v.toFixed(2) });
-
-  // MPG
-  legend("#mpgLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
-  const mpgGroups = (week === "all" ? [...WEEKS.slice(-6), "all"] : [week]).map((w) => ({ label: w === "all" ? `${WEEKS.length}-week total` : WLABEL[w], bars: TRUCKS.map((t) => {
-    const x = w === "all" ? byT[t] : tw(t, w);
-    return { value: x.mpg, color: TC[t], tip: `<b>Truck ${t} · ${w === "all" ? WEEKS.length + " weeks" : WLABEL[w]}</b><br>${x.mpg.toFixed(2)} MPG<br>${num(x.miles)} mi ÷ ${num(x.dGal, 1)} gal diesel<br>Fuel+DEF ${pm(x.fpm)}/mi · ${pm(x.dCost / x.dGal)}/gal` };
-  }) }));
-  vbars("#mpgChart", mpgGroups, { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 MPG target" });
-
-  // Gross
-  legend("#grossLegend", TRUCKS.map((t) => [TC[t], `Truck ${t}`]));
-  vbars("#grossChart", showWeeks.map((w) => ({ label: WLABEL[w], bars: TRUCKS.map((t) => { const x = tw(t, w);
-    return { value: x.gross, color: TC[t], tip: `<b>Truck ${t} · ${WLABEL[w]}</b><br>Gross ${money(x.gross)} · ${x.L.length} loads<br>${num(x.miles)} miles · RPM ${pm(x.rpm)}` }; }) })),
-    { fmt: (v, axis) => axis ? "$" + (v / 1000).toFixed(0) + "k" : "$" + (v / 1000).toFixed(1) + "k" });
 
   // Deadhead per load
   const loads = fleet.L.filter((l) => l.TotalMiles > 0);
@@ -817,34 +744,6 @@ var render = function () {
     fleet.F.map((f) => `<tr><td class="left">${(f.Date || "").slice(5) || "—"}</td><td>${f.TruckID}</td><td class="left">${f.Product}</td><td class="left">${esc(f.City)}, ${esc(f.State)}</td><td>${num(f.Gallons, 2)}</td><td>${money(f.RetailAmount, 2)}</td><td>${money(f.InvoiceAmount, 2)}</td><td>${money(f.Discount, 2)}</td><td>${f.PricePerGal ? pm(f.PricePerGal) : "—"}</td></tr>`).join("") +
     `<tr><td colspan="4"><b>Total</b></td><td><b>${num(fleet.F.reduce((t, f) => t + f.Gallons, 0), 2)}</b></td><td></td><td><b>${money(fleet.dCost + fleet.defCost, 2)}</b></td><td><b>${money(fleet.disc, 2)}</b></td><td></td></tr></tbody>`;
 }
-
-// ---- static content: flags & recommendations (always about the full 2 weeks) ----
-const FLAGS = [
-  ["critical", "Registrations billed to the wrong trucks: $6,910", "$4,507.13 \"for 777 truck\" was deducted on truck 7777's statement, and $2,403.19 for truck 77777 (Donomy Jenkins's 2023 Cascadia …NZ3683, titled 8/18/2026) on truck 777's. Only $2,643.04 came back. Ask Wenze for both receipts, check nothing is charged twice, and have each charge moved to the right truck so per-truck profit is correct.", "$4,267 net"],
-  ["serious", "Driver travel for other trucks billed to 777 and 7777", "Air tickets and Uber for Donomy Jenkins (driver of truck 77777: $550.83), an air ticket for Moise Yankee ($226.20), and Ubers and a hotel from August–September: $917.72 total, labelled \"Safety\". Donomy's costs belong to truck 77777, not 777 or 7777. Ask who Moise Yankee is and which truck he was hired for.", "$918"],
-  ["critical", "Open balance of −$6,019.89 on every statement", "The Balances box shows −$6,019.89 in open items on all four statements (plus fuel, toll and maintenance balances). That is money Wenze says you owe and will keep deducting. Request an itemised ledger of what makes up that figure.", "$6,020 owed"],
-  ["serious", "Truck 777 is burning more fuel", "5.39 MPG over 2 weeks vs 6.06 for truck 7777 — about 12% worse, costing $1.10/mi in fuel vs $0.98. Both trucks fell to ~4.4 MPG in the week of Oct 19. Check idle time in the ELD, tyre pressure, and driver speed; at 6.5 MPG truck 777 would have used ~118 fewer gallons — about $680 less in these 2 weeks.", "~$680"],
-  ["serious", "Truck 777 deadhead is 19.6% (fleet target ≤15%)", "734 empty miles out of 3,739. Load 80A9397 Byhalia MS → St. Louis was 54% deadhead (374 empty miles for 324 loaded). At the fleet's $2.56 CPM, the ~173 empty miles above the 15% line cost about $440.", "~$440"],
-  ["serious", "Truck 7777 lost money in the week of Oct 19", "RPM $2.64 vs CPM $3.08 → about −$1,157 operating. The $550 Clearwater FL → Unadilla GA load paid $1.42/mi and the driver got 53% of it; $549 in NYC-area tolls (George Washington Bridge, Holland Tunnel, Verrazano) and $3,491 of fuel on just 2,618 miles.", "−$1,157"],
-  ["serious", "Truck 777 runs half the miles of truck 7777", "1,870 mi/week vs 3,579 mi/week. Damarion's higher RPM ($3.31 vs $2.97) doesn't make up for it: gross was $12,360 vs $21,250. The truck is under-used — talk to dispatch about longer runs or back-to-back loads.", "−$8,890 gross"],
-  ["warning", "Oil change prices look high", "$571.13 for truck 777 and $524.79 for truck 7777. A Class 8 oil change is usually $300–$450. Ask for itemised invoices (0026140 and 4011180862) and shop around.", "~$250"],
-  ["warning", "Driver rate for truck 777 went up", "Damarion was paid $0.65/mi in the week of Oct 12 and $0.70/mi in the week of Oct 19, plus a $100 bonus charged to you. If you approved it, fine — if not, ask why.", "+$100/wk"],
-  ["warning", "Unexplained $1,500 \"Rodrick approve\" reimbursement and $106 EFS cash advance", "Both appear without detail. The reimbursement helped you, but you should know what it's for so it isn't taken back later.", "$1,606"],
-];
-document.getElementById("flags").innerHTML = FLAGS.map(([sev, t, b, a]) => `<li class="flag ${sev}"><div class="icon" aria-hidden="true">${sev === "warning" ? "!" : "▲"}</div>
-  <div><div class="sev">${sev}</div><div class="title">${t}</div><div class="body">${b}</div></div><div class="amt">${a}</div></li>`).join("");
-
-const RECS = [
-  ["Operating profit, not just net pay", "Net pay mixes this week's trucking with old registration bills and reimbursements. Truck 7777 netted $8.08 one week while actually earning ~$4,800 operating profit. Separating the two shows the real health of each truck."],
-  ["Breakeven RPM per truck", "CPM is your breakeven: $2.46 for 7777 and $2.75 for 777 (before truck payment). Never accept a load whose all-in RPM is below it. Add your truck payment, physical-damage insurance and permits to get the true number."],
-  ["Loaded RPM vs all-miles RPM", "Loaded RPM shows what the broker paid; all-miles RPM shows what you really earned after deadhead. A big gap (777: $4.11 vs $3.31) means dispatch is sending you too far empty."],
-  ["Driver pay % of gross", "Should sit around 25–30%. On cheap loads it explodes (53% on the $550 load) because the driver is paid per mile, not per dollar."],
-  ["Fuel price per gallon & card discount", "You saved $820 on the fuel card these 2 weeks. Tracking $/gal per stop shows which stops/states to avoid — e.g. Hagerstown MD and Bordentown NJ were the priciest."],
-  ["Tolls per mile", "7777 paid $0.21/mi in tolls in the week of Oct 19 vs $0.03/mi for 777. Routing around NYC bridges on the way to NJ loads can save hundreds."],
-  ["Miles per week (utilisation)", "Revenue follows miles. A truck under ~2,500 mi/week will struggle to cover $690/week of fixed charges plus the 12% fee."],
-  ["Running weekly trend", "Two weeks is too short to judge a driver or truck. Keep adding each settlement (run the build script) and watch the 4-week averages of MPG, RPM and maintenance/mile."],
-];
-document.getElementById("recs").innerHTML = RECS.map(([t, p]) => `<div class="rec"><b>${t}</b><p>${p}</p></div>`).join("");
 
 // ---- controls ----
 $("#weekSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
@@ -940,7 +839,8 @@ function renderWeek(flags) {
     ["MPG", ok(x.mpg) ? x.mpg.toFixed(2) : "—", arrow(x.mpg, pv("mpg"), true, (v) => v.toFixed(2)), `${num(x.dGal, 0)} gal · ${pm(x.dCost / x.dGal)}/gal`],
   ];
   $("#weekKpis").innerHTML = k.map(([l, v, d, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${d || "&nbsp;"}</div><div class="note">${n}</div></div>`).join("");
-  $("#weekFlags").innerHTML = flagList(flags.filter((f) => f.wk === curWeek), "Nothing flagged this week. 👍");
+  const fl = flagScope === "week" ? flags.filter((f) => f.wk === curWeek) : flags;
+  $("#weekFlags").innerHTML = flagList(fl, flagScope === "week" ? "Nothing flagged this week." : "No red flags.");
 }
 
 // ---- Week by week ----
@@ -977,16 +877,18 @@ $("#stmtTable").addEventListener("click", async (e) => {
 });
 
 // ---- tabs (hash routing) ----
-const TABS = ["overview", "this-week", "mentor", "trucks", "dashboard", "trends", "loads", "statements"];
+const TABS = ["overview", "this-week", "trucks", "compare", "loads", "statements"];
 function showTab() {
   const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === t));
   document.querySelectorAll("#tabs a").forEach((a) => a.setAttribute("aria-selected", a.dataset.tab === t));
-  $("#filterbar").style.display = ["this-week", "mentor", "overview", "trucks"].includes(t) ? "none" : "";
+  $("#filterbar").style.display = ["compare", "loads", "statements"].includes(t) ? "" : "none";
   if (D) render();
   if (D && t === "overview") renderOverview();
 }
 window.addEventListener("hashchange", showTab);
+$("#flagScope").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; flagScope = b.dataset.scope;
+  document.querySelectorAll("#flagScope button").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); });
 $("#prevWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i > 0) { curWeek = WEEKS[i - 1]; render(); } });
 $("#nextWeek").addEventListener("click", () => { const i = WEEKS.indexOf(curWeek); if (i < WEEKS.length - 1) { curWeek = WEEKS[i + 1]; render(); } });
 $("#carrierSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; carrier = b.dataset.carrier;
@@ -1028,33 +930,6 @@ function lineChart(target, xs, series, { fmt, ref, refLabel, height = 230, width
   });
   $(target).replaceChildren(svg);
 }
-function renderLines() {
-  const save = week, saveC = carrier, vt = visTrucks(), xs = WEEKS.slice(-12);
-  const at = (w, t) => { week = w; const r = m(t); week = save; return r; };
-  const fleetPts = xs.map((w) => [w, at(w)]);
-  legend("#lnProfitLegend", [["var(--s1)", "Gross"], ["var(--s3)", "Operating profit"], ["var(--s2)", "Net pay deposited"]]);
-  lineChart("#lnProfit", xs, [
-    { name: "Gross", color: "var(--s1)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.gross : NaN })) },
-    { name: "Operating profit", color: "var(--s3)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.profit : NaN })) },
-    { name: "Net pay deposited", color: "var(--s2)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.S.length ? x.net : NaN })) },
-  ], { width: 1100, height: 280, fmt: (v, ax) => (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(ax ? 0 : 1) + "k" : Math.abs(v).toFixed(0)) });
-  legend("#lnRpmLegend", [["var(--s3)", "RPM (revenue/mile)"], ["var(--s8)", "CPM (cost/mile)"]]);
-  lineChart("#lnRpm", xs, [
-    { name: "RPM", color: "var(--s3)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.rpm })) },
-    { name: "CPM", color: "var(--s8)", points: fleetPts.map(([w, x]) => ({ x: w, y: x.cpm })) },
-  ], { fmt: (v) => "$" + v.toFixed(2) });
-  legend("#lnGrossLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
-  lineChart("#lnGross", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.S.length ? x.gross : NaN }; }) })),
-    { fmt: (v, ax) => "$" + (v / 1000).toFixed(ax ? 0 : 1) + "k" });
-  legend("#lnMpgLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
-  lineChart("#lnMpg", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.dGal > 0 ? x.mpg : NaN }; }) })),
-    { fmt: (v) => v.toFixed(1), ref: 6.5, refLabel: "6.5 target" });
-  legend("#lnTruckProfitLegend", vt.map((t) => [TC[t], `Truck ${t}`]));
-  lineChart("#lnTruckProfit", xs, vt.map((t) => ({ name: `Truck ${t}`, color: TC[t], points: xs.map((w) => { const x = at(w, t); return { x: w, y: x.S.length ? x.profit : NaN }; }) })),
-    { fmt: (v, ax) => (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(ax ? 0 : 1) + "k" : Math.abs(v).toFixed(0)) });
-  carrier = saveC;
-}
-
 // ---- Mentor: action plan ----
 let doneMap = {};            // actionKey -> {done, at}
 function buildActions(flags) {
@@ -1114,8 +989,7 @@ function renderMentor(flags) {
   const A = buildActions(flags), open = A.filter((a) => !doneMap[a.key]?.done);
   const worth = open.reduce((t, a) => t + (a.impact > 1 ? a.impact : 0), 0);
   $("#mentorSummary").innerHTML = `<b>${open.length}</b> open action${open.length === 1 ? "" : "s"} · about <b>${money(worth)}</b> at stake · ${A.length - open.length} done`;
-  $("#actions").innerHTML = A.map(actionItem).join("") || `<li class="muted">Nothing to do — great week.</li>`;
-  $("#topActions").innerHTML = open.slice(0, 3).map(actionItem).join("") || `<li class="muted">All caught up. 👍</li>`;
+  $("#actions").innerHTML = A.map(actionItem).join("") || `<li class="muted">Nothing to do.</li>`;
 }
 document.addEventListener("change", async (e) => {
   const cb = e.target.closest("input[data-act]"); if (!cb || !db) return;
@@ -1194,7 +1068,7 @@ function sparkSVG(vals, color) {
   return `<svg viewBox="0 0 ${W} ${H}" class="spark" aria-hidden="true">${area}<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/><circle cx="${X(last[0])}" cy="${Y(last[1])}" r="3" fill="${color}"/></svg>`;
 }
 function renderOverview() {
-  if (!WEEKS.length) { $("#ovTiles").innerHTML = `<p class="muted">No statements yet. Upload one on the This week tab and this page fills in.</p>`; return; }
+  if (!WEEKS.length) { $("#ovTiles").innerHTML = `<p class="muted">No statements yet. Upload one on the This week tab.</p>`; return; }
   const xs = WEEKS.slice(-16), last = WEEKS[WEEKS.length - 1], prev = WEEKS[WEEKS.length - 2];
   const all = at2("all"), M = METRICS.find((q) => q.key === ovMetric);
   if (!ovShow) ovShow = new Set(["fleet", ...TRUCKS]);
@@ -1380,8 +1254,8 @@ function renderTrucks() {
       <p class="muted wide">Unit number links this truck to its statements and maintenance (e.g. 777). VIN is on the title.</p>
       <div class="pform-actions"><button class="btn primary" type="submit">Save profile</button></div></form>`
     : `<dl class="prof">${F.filter(([k]) => k !== "notes" && k !== "unit").map(([k, l, typ]) => `<div><dt>${l}</dt><dd>${show(k, typ)}</dd></div>`).join("")}</dl>
-      <p class="muted">${estOdo(t) ? `Estimated odometer today: <b>${num(estOdo(t))} mi</b> (last reading + statement miles since).` : "Enter an odometer reading so services can be tracked by odometer. Until then, miles are counted from your statements."}</p>
-      ${p.notes ? `<p class="note">${esc(p.notes)}</p>` : ""}`);
+      <p class="muted">${estOdo(t) ? `Estimated odometer today: <b>${num(estOdo(t))} mi</b> (last reading plus statement miles since).` : "Enter an odometer reading to track services by odometer. Until then, miles come from statements."}</p>
+      ${p.notes ? `<p class="prof-note">${esc(p.notes)}</p>` : ""}`);
   // schedule
   const sc = schedule(t);
   $("#svcSched").innerHTML = `<ul class="svc">${sc.map((i) => `<li class="svc-${i.st}"><div><b>${i.label}</b><span class="muted">${i.iv ? "every " + num(i.iv) + " mi" : i.days ? "every " + (i.days >= 365 ? "year" : i.days + " days") : ""}${i.last ? " · last " + dlabel(i.last.date) + (i.last.odometer ? " at " + num(+i.last.odometer) + " mi" : i.since != null ? ", " + num(i.since) + " mi ago" : "") : ""}</span></div>
@@ -1455,8 +1329,7 @@ render = function () {
   renderWeek(flags);
   if (!D.settlements.length) return;
   _render();
-  const save = week; $("#autoFlags").innerHTML = flagList(flags.filter((f) => (week === "all" || !f.wk || f.wk === week) && (carrier === "all" || !f.wk || f.title.match(/Truck (\S+)/) && visTrucks().includes(f.title.match(/Truck (\S+)/)[1]))), "No red flags. 👍");
-  renderTrends(); stmtTable(); renderLines(); renderMentor(flags); renderOverview(); renderWhatIf(); renderTrucks();
+  renderTrends(); stmtTable(); renderMentor(flags); renderOverview(); renderWhatIf(); renderTrucks();
 };
 
 // ---- database ----
@@ -1478,11 +1351,11 @@ function showOffline(msg) { setStatus("err", msg); $("#drop").style.display = "n
 setData(window.FLEET); showTab(); // instant first paint from the bundled copy
 (async () => {
   try { db = await window.claude?.use?.("db"); } catch { db = null; }
-  if (!db) return showOffline("Offline copy (database not available in this view)");
+  if (!db) return showOffline("Offline copy");
   try { const user = await window.claude.use("user"); const c = user ? await user.can("data.write") : null; canWrite = c !== false; } catch { canWrite = true; }
   try { sample = await window.claude.use("sample"); } catch { sample = null; }
   if (!canWrite) $("#drop").style.display = "none";
-  let timer = setTimeout(() => setStatus("err", "Database not reachable yet — showing bundled copy"), 10000);
+  let timer = setTimeout(() => setStatus("err", "Database not reachable yet"), 10000);
   db.collection("vehicles").onSnapshot((snap) => { VEH = snap.docs.map((d) => ({ ...d.data(), _id: d.id })); if (D) render(); }, () => {});
   db.collection("maint").onSnapshot((snap) => { MAINT = snap.docs.map((d) => d.data()).filter((x) => x && x.id); if (D) render(); }, () => {});
   db.collection("actions").onSnapshot((snap) => { doneMap = {}; snap.docs.forEach((d) => { const v = d.data(); if (v && v.key) doneMap[v.key] = v; }); if (D) render(); }, () => {});
@@ -1493,8 +1366,8 @@ setData(window.FLEET); showTab(); // instant first paint from the bundled copy
     setData(fromDocs(snap.docs.map((x) => x.data())));
     if (!snap.metadata.fromCache) $("#ovUpdated").textContent = "updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     render();
-    setStatus(snap.metadata.fromCache ? "" : "live", `Live database · ${snap.size} statement${snap.size === 1 ? "" : "s"}${snap.metadata.hasPendingWrites ? " · saving…" : ""}`);
-    if (snap.empty) $("#subtitle").textContent = "Database is empty — upload a settlement PDF below.";
+    setStatus(snap.metadata.fromCache ? "" : "live", `Live · ${snap.size} statement${snap.size === 1 ? "" : "s"}${snap.metadata.hasPendingWrites ? " · saving…" : ""}`);
+    if (snap.empty) $("#subtitle").textContent = "Database is empty. Upload a statement on the This week tab.";
   }, (err) => { clearTimeout(timer); setStatus("err", "Database error: " + err.code + " — showing last loaded data"); });
 })();
 
