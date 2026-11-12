@@ -316,4 +316,4 @@ for name, rows in tables.items():
     ws.freeze_panes = "A2"
 wb.save(os.path.join(HERE, "Fleet_Settlements_Oct2026.xlsx"))
 print(json.dumps({k: {kk: (round(vv, 3) if isinstance(vv, float) else vv) for kk, vv in v.items()} for k, v in out["byTruck"].items()}, indent=1))
-print(json.dumps({k: {kk: round(v[kk], 3) for kk in ("mpg", "rpm", "cpm", "deadheadPct", "operatingProfit", "miles", "dieselGal")} for k, v in out["byTruckWeek"].items()}, indent=1))
+print(json.dumps({k: {kk: (round(v[kk], 3) if v[kk] is not None else None) for kk in ("mpg", "rpm", "cpm", "deadheadPct", "operatingProfit", "miles", "dieselGal")} for k, v in out["byTruckWeek"].items()}, indent=1))
