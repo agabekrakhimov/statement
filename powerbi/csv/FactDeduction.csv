@@ -50,3 +50,11 @@ BL-001611-D5,BL-001611,555,2026-10-19,Fuel,Fuel,Fuel card (retail price),2790.74
 BL-001611-D6,BL-001611,555,2026-10-19,Tolls,Toll,Toll transactions,108.25,True
 BL-001611-D7,BL-001611,555,2026-10-19,Fixed Weekly,Other,Recurrent #4: plate fee,200.0,True
 BL-001611-D8,BL-001611,555,2026-10-19,Salary Adjustment,Salary Adjustments,Salary adjustments auto charge (unexplained),1382.49,False
+BL-001669-D1,BL-001669,555,2026-11-02,Safety / Driver Travel,Other,Hotel,92.82,False
+BL-001669-D2,BL-001669,555,2026-11-02,Safety / Driver Travel,Other,Uber,15.95,False
+BL-001669-D3,BL-001669,555,2026-11-02,Fixed Weekly,Admin Fee,Weekly admin fee,100.0,True
+BL-001669-D4,BL-001669,555,2026-11-02,Fixed Weekly,Insurance,Weekly insurance,400.0,True
+BL-001669-D5,BL-001669,555,2026-11-02,Company Fee,Company Fee,Company fee 11% of gross,605.0,True
+BL-001669-D6,BL-001669,555,2026-11-02,Fuel,Fuel,Fuel card (no transaction detail printed),2320.65,True
+BL-001669-D7,BL-001669,555,2026-11-02,Tolls,Toll,Toll transactions,288.49,True
+BL-001669-D8,BL-001669,555,2026-11-02,Fixed Weekly,Other,Recurrent #1: plate fee,200.0,True

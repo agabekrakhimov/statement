@@ -31,6 +31,9 @@ settlements = [
     dict(SettlementID="BL-001611", TruckID="555", WeekStart="2026-10-19", WeekEnd="2026-10-25", CheckDate="2026-10-28",
          Trips=3, Gross=13300.00, DriverPay=3709.61, Reimbursements=0.00, Deductions=6501.26, NetPay=3089.13,
          Carrier="VKL Trucking Inc", Owner="ODO Express LLC"),
+    dict(SettlementID="BL-001669", TruckID="555", WeekStart="2026-11-02", WeekEnd="2026-11-08", CheckDate="2026-11-11",
+         Trips=3, Gross=5500.00, DriverPay=1700.93, Reimbursements=564.29, Deductions=4022.91, NetPay=340.45,
+         Carrier="VKL Trucking Inc", Owner="ODO Express LLC"),
 ]
 for _s in settlements:
     _s.setdefault("Carrier", "Wenze Transport Services")
@@ -64,6 +67,11 @@ _loads = {
         ("5035389", "Danville, KY", "Woodbridge Township, NJ", None, "2026-10-16", 0.00, 0.00, 0.00, 300.00, 0.00),
         ("9821846", "Luckey, OH", "Cheney, WA", None, "2026-10-22", 2046.82, 150.00, 2196.82, 7000.00, 1603.68),
         ("2627175", "Spokane, WA", "Wilmington, OH", None, "2026-10-26", 2110.67, 1.16, 2111.83, 6000.00, 1541.64),
+    ],
+    "BL-001669": [
+        ("606843", "Hialeah, FL", "Green Brook Township, NJ", None, "2026-11-02", 1381.45, 3.38, 1384.83, 1000.00, 1010.93),
+        ("176376", "East Rutherford, NJ", "Tucker, GA", None, "2026-11-05", 864.88, 33.32, 898.20, 2700.00, 655.69),
+        ("60116488267", "Hialeah, FL", "South Brunswick Township, NJ", None, "2026-11-05", 7.00, 40.00, 47.00, 1800.00, 34.31),
     ],
 }
 
@@ -108,6 +116,7 @@ _fuel = {
         (None, "Diesel", "Laurel", "MT", 112.40, 684.40, 684.40),
         (None, "Diesel", "Aurora", "NE", 127.09, 837.38, 837.38),
     ],
+    "BL-001669": [],  # statement prints no fuel transactions
 }
 
 # Category (Power BI-friendly bucket), statement type, description, amount, recurring?
@@ -173,11 +182,22 @@ _ded = {
         ("Fixed Weekly", "Other", "Recurrent #4: plate fee", 200.00),
         ("Salary Adjustment", "Salary Adjustments", "Salary adjustments auto charge (unexplained)", 1382.49),
     ],
+    "BL-001669": [
+        ("Safety / Driver Travel", "Other", "Hotel", 92.82),
+        ("Safety / Driver Travel", "Other", "Uber", 15.95),
+        ("Fixed Weekly", "Admin Fee", "Weekly admin fee", 100.00),
+        ("Fixed Weekly", "Insurance", "Weekly insurance", 400.00),
+        ("Company Fee", "Company Fee", "Company fee 11% of gross", 605.00),
+        ("Fuel", "Fuel", "Fuel card (no transaction detail printed)", 2320.65),
+        ("Tolls", "Toll", "Toll transactions", 288.49),
+        ("Fixed Weekly", "Other", "Recurrent #1: plate fee", 200.00),
+    ],
 }
 
 _reimb = {
     "BL-001024": [("Rodrick approve", 1500.00), ("Net pay for 7777, 10/05-10/11", 133.06), ("Net pay for 777, 10/05-10/11", 1160.61)],
     "BL-001050": [("For registration", 2643.04)],
+    "BL-001669": [("Driver salary difference from week Oct 19-25", 564.29)],
 }
 
 # --- flatten -------------------------------------------------------------
@@ -218,7 +238,7 @@ for s in settlements:
     assert round(sum(r["Amount"] for r in reimbs if r["SettlementID"] == sid), 2) == s["Reimbursements"], sid
     assert round(s["Gross"] - s["DriverPay"] + s["Reimbursements"] - s["Deductions"], 2) == s["NetPay"], sid
     fuel_inv = round(sum(f["InvoiceAmount"] for f in fuel if f["SettlementID"] == sid), 2)
-    assert fuel_inv == next(d["Amount"] for d in deds if d["SettlementID"] == sid and d["Category"] == "Fuel"), sid
+    if fuel_inv: assert fuel_inv == next(d["Amount"] for d in deds if d["SettlementID"] == sid and d["Category"] == "Fuel"), sid
 
 # --- per-truck / per-week metrics (for the HTML report) -----------------
 def metrics(filter_fn):
@@ -246,14 +266,14 @@ def metrics(filter_fn):
         loads=len(L), miles=round(miles, 2), loaded=round(loaded, 2), empty=round(empty, 2), gross=round(gross, 2),
         driverPay=round(dpay, 2), categories=cat, dieselGal=round(diesel_gal, 2), dieselCost=round(diesel_cost, 2),
         defCost=round(def_cost, 2), fuelDiscount=round(sum(f["Discount"] for f in F), 2),
-        rpm=gross / miles, loadedRpm=gross / loaded, deadheadPct=empty / miles, mpg=miles / diesel_gal,
-        pricePerGal=diesel_cost / diesel_gal, fuelPerMile=(diesel_cost + def_cost) / miles,
+        rpm=gross / miles, loadedRpm=gross / loaded, deadheadPct=empty / miles, mpg=miles / diesel_gal if diesel_gal else None,
+        pricePerGal=diesel_cost / diesel_gal if diesel_gal else None, fuelPerMile=(diesel_cost + def_cost) / miles,
         operatingCost=round(op_cost, 2), cpm=op_cost / miles, operatingProfit=round(gross - op_cost, 2),
         operatingMargin=(gross - op_cost) / gross, oneTimeCharges=round(one_time, 2), reimbursements=round(reimb, 2),
         netPay=round(net, 2),
     )
 
-weeks = ["2026-10-12", "2026-10-19"]
+weeks = sorted({s["WeekStart"] for s in settlements})
 out = {
     "trucks": trucks,
     "settlements": settlements,
